@@ -44,27 +44,8 @@ export const AuthProvider = ({ children }) => {
     return await supabase.auth.signOut();
   };
 
-  const updateProfile = async (updates) => {
-    const { data, error } = await supabase.auth.updateUser({
-      data: updates,
-    });
-
-    if (!error && data?.user) {
-      setUser(data.user);
-      setSession((currentSession) =>
-        currentSession ? { ...currentSession, user: data.user } : currentSession
-      );
-    }
-
-    return { data, error };
-  };
-
-  const updateProfileAvatar = async (avatarUrl) => {
-    return await updateProfile({ avatar_url: avatarUrl });
-  };
-
   return (
-    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut, updateProfile, updateProfileAvatar }}>
+    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

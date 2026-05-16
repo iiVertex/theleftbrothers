@@ -1,8 +1,6 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAuth } from '../context/AuthContext';
-import { View, ActivityIndicator } from 'react-native';
 
 import Onboarding1Screen from '../screens/Onboarding1Screen';
 import Onboarding2Screen from '../screens/Onboarding2Screen';
@@ -11,25 +9,14 @@ import SignUpScreen from '../screens/SignUpScreen';
 import MainTabNavigator from './MainTabNavigator';
 import CreateVideoScreen from '../screens/CreateVideoScreen';
 import FolderDetailScreen from '../screens/FolderDetailScreen';
-import ProfileEditScreen from '../screens/ProfileEditScreen';
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
-  const { session, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F0F1E' }}>
-        <ActivityIndicator size="large" color="#fff" />
-      </View>
-    );
-  }
-
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={session ? "Home" : "Onboarding1"}
+        initialRouteName="Onboarding1"
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
@@ -50,12 +37,6 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="FolderDetail" 
           component={FolderDetailScreen} 
-          options={{ presentation: 'modal' }}
-        />
-        <Stack.Screen 
-          name="ProfileEdit"
-          component={ProfileEditScreen}
-          options={{ presentation: 'modal' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
