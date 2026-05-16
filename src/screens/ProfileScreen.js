@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Modal, Switch, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Modal, Switch, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const { folders, videos, userStats, settings, setSettings } = useData();
+  const { user, signOut } = useAuth();
   const [isSettingsVisible, setSettingsVisible] = useState(false);
 
   const toggleNotifications = () => setSettings({...settings, notificationsEnabled: !settings.notificationsEnabled});
@@ -13,6 +15,16 @@ export default function ProfileScreen() {
   
   const incrementVideoLimit = () => setSettings({...settings, dailyVideoLimit: settings.dailyVideoLimit + 1});
   const decrementVideoLimit = () => setSettings({...settings, dailyVideoLimit: Math.max(1, settings.dailyVideoLimit - 1)});
+
+  const handleLogout = async () => {
+    await signOut();
+    // Use parent navigator to reset to SignIn
+    const parentNav = navigation.getParent();
+    parentNav?.reset({
+      index: 0,
+      routes: [{ name: 'SignIn' }],
+    });
+  };
 
   const incrementNightTime = () => {
     let [hours, mins] = settings.nightTimeLimit.split(':').map(Number);
@@ -32,6 +44,9 @@ export default function ProfileScreen() {
   const cardBg = isDark ? '#1E1E1E' : COLORS.white;
   const border = isDark ? '#333333' : '#F0F0F0';
   const subText = isDark ? '#A0A0A0' : '#8A8D9F';
+  const username = user?.user_metadata?.username?.trim() || user?.email?.split('@')[0] || 'Username';
+  const handle = username.startsWith('@') ? username : `@${username}`;
+  const avatarUrl = user?.user_metadata?.avatar_url || '';
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -47,11 +62,15 @@ export default function ProfileScreen() {
         {/* User Identity Section */}
         <View style={styles.identityContainer}>
           <View style={styles.avatarContainer}>
-            <Ionicons name="person" size={50} color={COLORS.primaryLight} />
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={50} color={COLORS.primaryLight} />
+            )}
           </View>
-          <Text style={[styles.userName, { color: text }]}>Alex Johnson</Text>
-          <Text style={[styles.userHandle, { color: subText }]}>@alexcreates</Text>
-          <TouchableOpacity style={styles.editProfileBtn}>
+          <Text style={[styles.userName, { color: text }]}>{username}</Text>
+          <Text style={[styles.userHandle, { color: subText }]}>{handle}</Text>
+          <TouchableOpacity style={styles.editProfileBtn} onPress={() => navigation.navigate('ProfileEdit')}>
             <Text style={styles.editProfileText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
@@ -120,6 +139,7 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
+
         {/* SETTINGS MODAL */}
         <Modal visible={isSettingsVisible} animationType="slide" transparent={true}>
           <View style={styles.modalOverlay}>
@@ -183,7 +203,7 @@ export default function ProfileScreen() {
                 </View>
 
                 {/* Daily Video Limit */}
-                <View style={[styles.settingRow, { borderBottomColor: border, borderBottomWidth: 0 }]}>
+                <View style={[styles.settingRow, { borderBottomColor: border }]}>
                   <View style={styles.settingTextContainer}>
                     <Text style={[styles.settingLabel, { color: text }]}>Daily Video Limit</Text>
                     <Text style={[styles.settingDescription, { color: subText }]}>Maximum uploads per day</Text>
@@ -198,6 +218,16 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
+
+                {/* Logout Button */}
+                <TouchableOpacity 
+                  style={[styles.logoutBtn, { backgroundColor: isDark ? '#3D1F1F' : '#FFE5E5' }]}
+                  onPress={handleLogout}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
+                  <Text style={[styles.logoutText, { color: COLORS.error }]}>Sign Out</Text>
+                </TouchableOpacity>
               </ScrollView>
             </View>
           </View>
@@ -215,7 +245,8 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 32, fontWeight: '800', color: '#F5A623' }, // Orange
   settingsBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.offWhite, justifyContent: 'center', alignItems: 'center' },
   identityContainer: { alignItems: 'center', marginBottom: 28 },
-  avatarContainer: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(108, 92, 231, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 12, borderWidth: 3, borderColor: COLORS.white, ...SHADOWS.small },
+  avatarContainer: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(108, 92, 231, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 12, borderWidth: 3, borderColor: COLORS.white, ...SHADOWS.small, overflow: 'hidden' },
+  avatarImage: { width: '100%', height: '100%', borderRadius: 50, resizeMode: 'cover' },
   userName: { fontSize: 24, fontWeight: '800', color: COLORS.dark, marginBottom: 4 },
   userHandle: { fontSize: 15, color: COLORS.gray, marginBottom: 16 },
   editProfileBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.primary },
@@ -333,4 +364,20 @@ const styles = StyleSheet.create({
   stepperContainer: { flexDirection: 'row', alignItems: 'center' },
   stepperBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.offWhite, justifyContent: 'center', alignItems: 'center' },
   stepperText: { fontSize: 16, fontWeight: '700', color: COLORS.dark, marginHorizontal: 12, minWidth: 40, textAlign: 'center' },
+  
+  logoutBtn: { 
+    flexDirection: 'row', 
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    gap: 10,
+  },
+  logoutText: { 
+    fontSize: 16, 
+    fontWeight: '700', 
+    color: COLORS.error,
+  },
 });

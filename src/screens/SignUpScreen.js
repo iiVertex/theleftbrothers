@@ -26,21 +26,27 @@ export default function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const { signUp } = useAuth();
 
   const handleSignUp = async () => {
     if (!email || !password || !username) {
-      Alert.alert('Error', 'Please enter username, email and password to sign up');
+      setError('Please enter username, email and password to sign up');
       return;
     }
     setLoading(true);
+    setError('');
     // Explicitly pass data directly to the options argument now
     const { error } = await signUp(email, password, { data: { username: username.trim() } });
     setLoading(false);
     
     if (error) {
+      if (error.message.includes("already be registered")) {
+        setError("Email already in use.");
+      } else {
+        setError(error.message || 'Please check your information and try again.');
+      }
       console.error("Supabase Registration Error:", error);
-      Alert.alert('Registration Failed', error.message || 'Please check your information and try again.');
     } else {
       Alert.alert('Success', 'Successfully signed up!');
       navigation.replace('Home');
@@ -130,6 +136,8 @@ export default function SignUpScreen({ navigation }) {
                     secureTextEntry={true}
                   />
                 </View>
+
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                 {/* Sign Up Button */}
                 <TouchableOpacity
@@ -260,5 +268,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 10,
   },
 });

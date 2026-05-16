@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -50,6 +51,7 @@ function RecentVideoCard({ item, folderName, onOptionsPress, isDark, cardBg, tex
 
 export default function HomeScreen({ navigation }) {
   const { folders, videos, getFolderItemCount, deleteFolder, updateFolder, deleteVideo, settings, userStats } = useData();
+  const { user } = useAuth();
   const isDark = settings?.isDarkMode;
   
   const bg = isDark ? '#0F0F1E' : '#F5F7FA'; // Softer, deeper backgrounds
@@ -57,6 +59,8 @@ export default function HomeScreen({ navigation }) {
   const text = isDark ? COLORS.white : '#2D3250'; // Navy Dark Blue from reference
   const subText = isDark ? '#8F95B2' : '#6B7280';
   const border = isDark ? '#2C2C3E' : '#EAECEF';
+  const username = user?.user_metadata?.username?.trim() || user?.email?.split('@')[0] || 'User';
+  const avatarUrl = user?.user_metadata?.avatar_url || '';
 
   // State setup
   const [isModalVisible, setModalVisible] = useState(false);
@@ -131,10 +135,14 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.heroHeaderTop}>
               <View style={styles.heroGreetingRow}>
                 <View style={styles.avatarWrapper}>
-                  <Image source={{uri: 'https://i.pravatar.cc/100'}} style={styles.avatarImage} />
+                  {avatarUrl ? (
+                    <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                  ) : (
+                    <Ionicons name="person" size={28} color={COLORS.white} />
+                  )}
                 </View>
                 <View style={styles.greetingTextWrap}>
-                  <Text style={styles.heroGreeting}>Hi User!</Text>
+                  <Text style={styles.heroGreeting}>Hi {username}!</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.notificationBtn}>

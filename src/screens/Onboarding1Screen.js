@@ -8,7 +8,7 @@ import {
   StatusBar,
   ImageBackground,
 } from 'react-native';
-import { COLORS } from '../constants/theme';
+import { COLORS, FONTS, SHADOWS } from '../constants/theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -83,8 +83,9 @@ const styles = StyleSheet.create({
   },
   titleText: {
     fontSize: 38,
+    fontFamily: FONTS.extraBold,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: -0.8,
   },
   titleWhite: {
     color: '#FFFFFF',
@@ -94,37 +95,41 @@ const styles = StyleSheet.create({
   },
   bottomSection: {
     paddingBottom: 40,
-    paddingTop: 20,
+    paddingTop: 24,
+    paddingHorizontal: 24,
     alignItems: 'center',
     backgroundColor: '#1A1028',
   },
   pagination: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 22,
+    marginBottom: 28,
     gap: 8,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   dotActive: {
     backgroundColor: '#EAA636',
+    width: 24,
   },
   continueButton: {
-    width: width - 48,
+    width: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 30,
-    paddingVertical: 18,
+    borderRadius: 18,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    ...SHADOWS.small,
   },
   continueText: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 16,
+    fontFamily: FONTS.bold,
+    fontWeight: '700',
     color: '#1A1028',
-    letterSpacing: 0.3,
+    letterSpacing: -0.3,
   },
 });
