@@ -3,22 +3,15 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SHADOWS } from '../constants/theme';
 
-const { width: SCREEN_W } = Dimensions.get('window');
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'];
-
-// Card spans the screen minus the 24px ProfileScreen side margins, minus 20px inner padding.
-const CARD_INNER = SCREEN_W - 48 - 40;
-const SLOT_SIZE = CARD_INNER / 7;
-const CELL_GAP = 5;
+const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+  'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
 
 const hexToRgb = (hex) => {
   const h = hex.replace('#', '');
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 };
 
-// Linear interpolation between two hex colors; t in [0, 1].
 const lerpRgb = (from, to, t) => {
   const a = hexToRgb(from);
   const b = hexToRgb(to);
@@ -26,9 +19,6 @@ const lerpRgb = (from, to, t) => {
 };
 
 const rgbStr = ([r, g, b]) => `rgb(${r}, ${g}, ${b})`;
-
-// Perceived brightness — picks readable text against a given cell color.
-const isLight = ([r, g, b]) => (r * 299 + g * 587 + b * 114) / 1000 > 140;
 
 export default function ActivityHeatMap({ viewActivity = [], isDark, cardBg, text, subText, border }) {
   const localDateKey = (d) =>
@@ -42,23 +32,58 @@ export default function ActivityHeatMap({ viewActivity = [], isDark, cardBg, tex
   const countByDate = {};
   viewActivity.forEach(({ date, count }) => { countByDate[date] = count; });
   const maxCount = Math.max(1, ...Object.values(countByDate));
-  const totalViews = Object.values(countByDate).reduce((s, c) => s + c, 0);
+  
+  let totalViews = 0;
+  const dates = Object.keys(countByDate).sort();
+  let longestStreak = 0;
+  let currentStreak = 0;
+  let tempStreak = 0;
+  let lastDate = null;
 
-  // In light mode activity darkens toward black; in dark mode it lightens toward beige.
+  for (const date of dates) {
+    totalViews += countByDate[date];
+    const d = new Date(date);
+    if (!lastDate) {
+      tempStreak = 1;
+    } else {
+      const diffTime = Math.abs(d - lastDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      if (diffDays === 1) {
+        tempStreak++;
+      } else if (diffDays > 1) {
+        tempStreak = 1;
+      }
+    }
+    if (tempStreak > longestStreak) longestStreak = tempStreak;
+    lastDate = d;
+  }
+
+  if (lastDate) {
+    const today = new Date(todayKey);
+    const diffTime = Math.abs(today - lastDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays <= 1) {
+      currentStreak = tempStreak;
+    } else {
+      currentStreak = 0;
+    }
+  }
+
+  const daysPassed = now.getDate();
+  const dailyAverage = daysPassed > 0 ? Math.round(totalViews / daysPassed) : 0;
+
   const emptyColor = isDark ? COLORS.darkBorder : COLORS.bg3;
   const fullColor = isDark ? COLORS.bg1 : COLORS.accent;
 
-  // 5 levels (0 = no activity, 4 = busiest). Returns an [r,g,b] array.
   const levelColor = (count) => {
     if (!count) return hexToRgb(emptyColor);
-    const level = Math.ceil((count / maxCount) * 4); // 1..4
+    const level = Math.ceil((count / maxCount) * 4);
     return lerpRgb(emptyColor, fullColor, level / 4);
   };
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const leadingBlanks = new Date(year, month, 1).getDay();
 
-  // Flat list of cells: nulls for the leading-weekday offset, then each day.
   const cells = [];
   for (let i = 0; i < leadingBlanks; i++) cells.push(null);
   for (let day = 1; day <= daysInMonth; day++) cells.push(day);
@@ -66,25 +91,25 @@ export default function ActivityHeatMap({ viewActivity = [], isDark, cardBg, tex
   return (
     <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
       <View style={styles.header}>
-        <View style={[styles.iconWrapper, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg3 }]}>
-          <Ionicons name="calendar-outline" size={20} color={subText} />
-        </View>
-        <View>
-          <Text style={[styles.title, { color: text }]}>Monthly Activity</Text>
-          <Text style={[styles.subtitle, { color: subText }]}>Your daily views this month</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <View style={[styles.iconWrapper, { backgroundColor: emptyColor }]}>
+            <Ionicons name="calendar-outline" size={24} color={text} />
+          </View>
+          <View style={{ marginLeft: 14 }}>
+            <Text style={[styles.title, { color: text }]}>{MONTHS[month]} ACTIVITY</Text>
+            <Text style={[styles.subtitle, { color: subText }]}>Your daily views</Text>
+          </View>
         </View>
       </View>
 
-      {/* Weekday labels */}
       <View style={styles.weekRow}>
         {WEEKDAYS.map((d, i) => (
-          <View key={i} style={styles.cellSlot}>
-            <Text style={[styles.weekLabel, { color: subText }]}>{d}</Text>
+          <View key={`wd-${i}`} style={styles.weekSlot}>
+            <Text style={[styles.weekLabel, { color: text }]}>{d}</Text>
           </View>
         ))}
       </View>
 
-      {/* Day grid */}
       <View style={styles.grid}>
         {cells.map((day, i) => {
           if (day === null) return <View key={`b${i}`} style={styles.cellSlot} />;
@@ -98,37 +123,39 @@ export default function ActivityHeatMap({ viewActivity = [], isDark, cardBg, tex
                 style={[
                   styles.cell,
                   { backgroundColor: rgbStr(rgb) },
-                  isToday && { borderWidth: 2, borderColor: COLORS.accent },
+                  isToday && { borderWidth: 2, borderColor: isDark ? COLORS.bg2 : COLORS.accentWarm },
                 ]}
-              >
-                <Text style={[styles.cellText, { color: isLight(rgb) ? COLORS.accent : COLORS.bg1 }]}>
-                  {day}
-                </Text>
-              </View>
+              />
             </View>
           );
         })}
       </View>
 
-      {/* Footer: month total + legend */}
-      <View style={[styles.footer, { borderTopColor: border }]}>
-        <Text style={[styles.footerText, { color: text }]}>
-          {MONTHS[month]} · {totalViews} {totalViews === 1 ? 'view' : 'views'}
-        </Text>
-        <View style={styles.legend}>
-          <Text style={[styles.legendLabel, { color: subText }]}>Less</Text>
-          {[0, 1, 2, 3, 4].map((level) => (
-            <View
-              key={level}
-              style={[styles.legendSwatch, { backgroundColor: rgbStr(lerpRgb(emptyColor, fullColor, level / 4)) }]}
-            />
-          ))}
-          <Text style={[styles.legendLabel, { color: subText }]}>More</Text>
+      <View style={[styles.statsOuter, { borderTopColor: border }]}>
+        <View style={styles.statsLeft}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+            <Text style={[styles.statTitle, { color: subText }]}>Daily average: </Text>
+            <Text style={[styles.statTitle, { color: text, fontWeight: '700' }]}>{dailyAverage} views</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 8 }}>
+            <Text style={[styles.statTitle, { color: subText }]}>Current streak: </Text>
+            <Text style={[styles.statTitle, { color: text, fontWeight: '700' }]}>{currentStreak} {currentStreak === 1 ? 'day' : 'days'}</Text>
+          </View>
+        </View>
+        <View style={styles.statsRight}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+            <Text style={[styles.statTitle, { color: subText }]}>Longest streak: </Text>
+            <Text style={[styles.statTitle, { color: text, fontWeight: '700' }]}>{longestStreak} {longestStreak === 1 ? 'day' : 'days'}</Text>
+          </View>
         </View>
       </View>
     </View>
   );
 }
+
+const { width: SCREEN_W } = Dimensions.get('window');
+const CARD_INNER = Math.min(SCREEN_W, 800) - 48 - 40;
+const SLOT_SIZE = CARD_INNER / 7;
 
 const styles = StyleSheet.create({
   card: {
@@ -138,47 +165,91 @@ const styles = StyleSheet.create({
     padding: 20,
     ...SHADOWS.small,
   },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'flex-start', 
+    marginBottom: 24, 
+    justifyContent: 'space-between' 
+  },
   iconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
   },
-  title: { fontSize: 13, fontWeight: '700', letterSpacing: FONTS.tracking.wide, textTransform: 'uppercase', marginBottom: 2 },
-  subtitle: { fontSize: 13, fontWeight: '500' },
+  title: { 
+    fontSize: 14, 
+    fontWeight: '800', 
+    letterSpacing: FONTS.tracking.wide, 
+    textTransform: 'uppercase', 
+    marginBottom: 2 
+  },
+  subtitle: { 
+    fontSize: 14, 
+    fontWeight: '600' 
+  },
 
-  weekRow: { flexDirection: 'row', marginBottom: 2 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  legend: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 4,
+    marginTop: 4
+  },
+  legendLabel: { 
+    fontSize: 10, 
+    fontWeight: '700', 
+    marginHorizontal: 2 
+  },
+  legendSwatch: { 
+    width: 12, 
+    height: 12, 
+    borderRadius: 3 
+  },
+
+  weekRow: { 
+    flexDirection: 'row', 
+    marginBottom: 8 
+  },
+  weekSlot: {
+    width: `${100 / 7}%`,
+    alignItems: 'center',
+  },
+  grid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap' 
+  },
   cellSlot: {
-    width: SLOT_SIZE,
-    height: SLOT_SIZE,
-    padding: CELL_GAP / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+    padding: 3,
   },
-  weekLabel: { fontSize: 10, fontWeight: '700' },
+  weekLabel: { 
+    fontSize: 11, 
+    fontWeight: '800' 
+  },
   cell: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1,
+    borderRadius: 4,
   },
-  cellText: { fontSize: 10, fontWeight: '600' },
 
-  footer: {
-    marginTop: 12,
-    paddingTop: 14,
+  statsOuter: {
+    marginTop: 16,
+    paddingTop: 16,
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
-  footerText: { fontSize: 13, fontWeight: '700' },
-  legend: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  legendLabel: { fontSize: 10, fontWeight: '600', marginHorizontal: 3 },
-  legendSwatch: { width: 12, height: 12, borderRadius: 3 },
+  statsLeft: {
+    flex: 1,
+  },
+  statsRight: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  statTitle: { 
+    fontSize: 12, 
+    fontWeight: '600' 
+  },
 });
