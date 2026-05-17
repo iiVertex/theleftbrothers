@@ -1,24 +1,13 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Dimensions,
-  StatusBar,
-  ImageBackground,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
+  View, Text, StyleSheet, TouchableOpacity, TextInput, Dimensions,
+  StatusBar, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { COLORS, FONTS } from '../constants/theme';
 
-const { width, height } = Dimensions.get('window');
-
-// Background image for Sign Up screen (using same as Sign In)
+const { height } = Dimensions.get('window');
 const BG_IMAGE = require('../../assets/signin_bg.jpg');
 
 export default function SignUpScreen({ navigation }) {
@@ -26,20 +15,18 @@ export default function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { signUp } = useAuth();
 
   const handleSignUp = async () => {
     if (!email || !password || !username) {
-      Alert.alert('Error', 'Please enter username, email and password to sign up');
+      Alert.alert('Error', 'Please enter username, email and password');
       return;
     }
     setLoading(true);
-    // Explicitly pass data directly to the options argument now
     const { error } = await signUp(email, password, { data: { username: username.trim() } });
     setLoading(false);
-    
     if (error) {
-      console.error("Supabase Registration Error:", error);
       Alert.alert('Registration Failed', error.message || 'Please check your information and try again.');
     } else {
       Alert.alert('Success', 'Successfully signed up!');
@@ -50,58 +37,58 @@ export default function SignUpScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      
-      <ImageBackground
-        source={BG_IMAGE}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
-        >
+
+      <ImageBackground source={BG_IMAGE} style={styles.backgroundImage} resizeMode="cover">
+        <View style={styles.overlay} />
+
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Top Navigation Bar */}
+            {/* Top Bar */}
             <View style={styles.topBar}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
+                <Ionicons name="chevron-back" size={26} color={COLORS.white} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-                <Text style={styles.signUpText}>Log In</Text>
+                <Text style={styles.switchText}>Log In</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.contentContainer}>
-              {/* Title */}
-              <Text style={styles.title}>Sign Up</Text>
+              <Text style={styles.title}>Create account</Text>
+              <Text style={styles.subtitle}>Join ReelsVault today</Text>
 
-              {/* Social Login Row */}
+              {/* Social Login */}
               <View style={styles.socialRow}>
-                <TouchableOpacity style={styles.googleButton}>
-                  <FontAwesome5 name="google" size={16} color="#FFFFFF" style={styles.socialIcon} />
-                  <Text style={styles.googleButtonText}>With Google</Text>
+                <TouchableOpacity style={styles.socialBtn}>
+                  <FontAwesome5 name="google" size={16} color={COLORS.text1} />
+                  <Text style={styles.socialBtnText}>Google</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.iconButton}>
-                  <FontAwesome5 name="facebook-f" size={20} color="#000000" />
+                <TouchableOpacity style={[styles.socialBtn, styles.socialBtnIcon]}>
+                  <FontAwesome5 name="facebook-f" size={18} color={COLORS.text1} />
                 </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.iconButton}>
-                  <FontAwesome5 name="twitter" size={20} color="#000000" />
+                <TouchableOpacity style={[styles.socialBtn, styles.socialBtnIcon]}>
+                  <FontAwesome5 name="twitter" size={18} color={COLORS.text1} />
                 </TouchableOpacity>
               </View>
 
-              {/* Inputs */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or with email</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Form */}
               <View style={styles.formContainer}>
                 <View style={styles.inputWrapper}>
+                  <Ionicons name="person-outline" size={18} color="rgba(255,255,255,0.5)" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Username"
-                    placeholderTextColor="#000000"
+                    placeholderTextColor="rgba(255,255,255,0.45)"
                     value={username}
                     onChangeText={setUsername}
                     autoCapitalize="none"
@@ -109,10 +96,11 @@ export default function SignUpScreen({ navigation }) {
                 </View>
 
                 <View style={styles.inputWrapper}>
+                  <Ionicons name="mail-outline" size={18} color="rgba(255,255,255,0.5)" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Your Email"
-                    placeholderTextColor="#000000"
+                    placeholder="Email address"
+                    placeholderTextColor="rgba(255,255,255,0.45)"
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -121,25 +109,32 @@ export default function SignUpScreen({ navigation }) {
                 </View>
 
                 <View style={styles.inputWrapper}>
+                  <Ionicons name="lock-closed-outline" size={18} color="rgba(255,255,255,0.5)" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Password"
-                    placeholderTextColor="#000000"
+                    placeholderTextColor="rgba(255,255,255,0.45)"
                     value={password}
                     onChangeText={setPassword}
-                    secureTextEntry={true}
+                    secureTextEntry={!showPassword}
                   />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                    <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={18} color="rgba(255,255,255,0.5)" />
+                  </TouchableOpacity>
                 </View>
 
-                {/* Sign Up Button */}
                 <TouchableOpacity
-                  style={styles.signUpButton}
+                  style={[styles.signUpButton, loading && { opacity: 0.7 }]}
                   onPress={handleSignUp}
                   activeOpacity={0.85}
                   disabled={loading}
                 >
-                  <Text style={styles.signUpTextBtn}>{loading ? 'Signing Up...' : 'Sign Up'}</Text>
+                  <Text style={styles.signUpText}>{loading ? 'Creating account...' : 'Create Account'}</Text>
                 </TouchableOpacity>
+
+                <Text style={styles.termsText}>
+                  By creating an account, you agree to our Terms of Service
+                </Text>
               </View>
             </View>
           </ScrollView>
@@ -150,115 +145,89 @@ export default function SignUpScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  backgroundImage: { flex: 1, width: '100%', height: '100%' },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15,14,12,0.55)',
   },
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
+  keyboardView: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60, // Adjust for status bar
+    paddingTop: 60,
   },
-  backButton: {
-    padding: 4,
-  },
-  signUpText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  backButton: { padding: 4 },
+  switchText: { color: COLORS.bg1, fontSize: 15, fontWeight: '700' },
   contentContainer: {
     flex: 1,
-    paddingHorizontal: 32,
+    paddingHorizontal: 28,
     justifyContent: 'center',
-    marginTop: height * 0.05,
+    marginTop: height * 0.03,
   },
   title: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 30,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    fontFamily: FONTS.serifBold,
+    fontSize: 38,
+    color: COLORS.white,
+    letterSpacing: 0,
+    marginBottom: 6,
   },
-  socialRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 30,
-    gap: 15,
+  subtitle: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '400',
+    marginBottom: 28,
   },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5A623',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-  },
-  socialIcon: {
-    marginRight: 8,
-  },
-  googleButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  formContainer: {
-    marginTop: 20,
-  },
-  inputWrapper: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    marginBottom: 16,
-    paddingHorizontal: 20,
-    height: 56,
-    justifyContent: 'center',
-  },
-  input: {
+
+  socialRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+  socialBtn: {
     flex: 1,
-    fontSize: 16,
-    color: '#000000',
-    fontWeight: '500',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.bg1,
+    borderRadius: 14,
+    paddingVertical: 13,
+    gap: 8,
   },
+  socialBtnIcon: { flex: 0, paddingHorizontal: 18 },
+  socialBtnText: { color: COLORS.text1, fontSize: 14, fontWeight: '700' },
+
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.15)' },
+  dividerText: { color: 'rgba(255,255,255,0.45)', fontSize: 13, marginHorizontal: 12, fontWeight: '500' },
+
+  formContainer: { gap: 12, marginBottom: 32 },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    height: 54,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, height: '100%', fontSize: 15, color: COLORS.white, fontWeight: '500' },
+  eyeBtn: { paddingLeft: 10 },
   signUpButton: {
-    backgroundColor: '#6C5CE7',
-    borderRadius: 15,
-    height: 56,
+    backgroundColor: COLORS.bg1,
+    borderRadius: 14,
+    height: 54,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
-    shadowColor: 'rgba(108, 92, 231, 0.4)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    elevation: 4,
+    marginTop: 4,
   },
-  signUpTextBtn: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
+  signUpText: { color: COLORS.text1, fontSize: 16, fontWeight: '700' },
+  termsText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: '400',
+    lineHeight: 18,
   },
 });

@@ -1,47 +1,68 @@
-// Theme constants for the ReelsVault app
 export const COLORS = {
-  // Primary palette
-  primary: '#6C5CE7',
-  primaryLight: '#A29BFE',
-  primaryDark: '#5A4BD1',
-  
-  // Secondary palette
-  secondary: '#00CEC9',
-  secondaryLight: '#55EFC4',
-  
-  // Accent
-  accent: '#FD79A8',
-  accentLight: '#FDCB6E',
-  
-  // Neutrals
-  white: '#FFFFFF',
-  offWhite: '#F8F9FA',
-  lightGray: '#E9ECEF',
-  gray: '#ADB5BD',
-  darkGray: '#495057',
-  charcoal: '#2D3436',
-  dark: '#1A1A2E',
-  darker: '#16162A',
-  darkest: '#0F0F1E',
-  black: '#000000',
-  
+  // Light theme surfaces
+  bg1: '#F5F0E8',
+  bg2: '#EFE7DA',
+  bg3: '#E7DDCF',
+
+  // Text
+  text1: '#111111',
+  text2: '#1A1A1A',
+  text3: '#2A2A2A',
+  subText: '#6B6560',
+  subTextLight: '#9A9088',
+
+  // Borders
+  border: '#D8CCBC',
+  borderLight: '#E8E0D4',
+
+  // Accent (matte black family)
+  accent: '#1A1A1A',
+  accentWarm: '#3A312B',
+
   // Functional
-  success: '#00B894',
-  warning: '#FDCB6E',
-  error: '#FF7675',
-  info: '#74B9FF',
-  
-  // Gradients (as arrays for LinearGradient)
-  gradientPrimary: ['#6C5CE7', '#A29BFE'],
-  gradientDark: ['#1A1A2E', '#16162A', '#0F0F1E'],
-  gradientAccent: ['#FD79A8', '#FDCB6E'],
-  gradientCard: ['rgba(108, 92, 231, 0.1)', 'rgba(162, 155, 254, 0.05)'],
+  white: '#FFFFFF',
+  offWhite: '#FAF7F2',
+  black: '#000000',
+  error: '#C0392B',
+  success: '#27AE60',
+
+  // Dark mode surfaces (warm dark)
+  darkBg: '#0F0E0C',
+  darkCard: '#1C1A16',
+  darkBorder: '#2A2520',
+  darkSubText: '#9A8F82',
+
+  // Keep for backward compat (used in video player which stays dark)
+  primary: '#1A1A1A',
+  primaryLight: '#3A312B',
+  primaryDark: '#0A0A0A',
+  gray: '#6B6560',
+  dark: '#111111',
+  darker: '#0A0A08',
+  darkest: '#0F0E0C',
 };
 
 export const FONTS = {
-  regular: 'System',
-  medium: 'System',
-  bold: 'System',
+  // Geometric sans (Montserrat) — body, UI, tracked-out section headers
+  regular: 'Montserrat_400Regular',
+  medium: 'Montserrat_500Medium',
+  semiBold: 'Montserrat_600SemiBold',
+  bold: 'Montserrat_700Bold',
+  extraBold: 'Montserrat_800ExtraBold',
+
+  // High-contrast serif (Bodoni Moda, a Didone) — user's name + hero titles
+  serif: 'BodoniModa_400Regular',
+  serifSemiBold: 'BodoniModa_600SemiBold',
+  serifBold: 'BodoniModa_700Bold',
+  serifBlack: 'BodoniModa_900Black',
+
+  // letterSpacing presets for tracked-out all-caps sans
+  tracking: {
+    tight: 1,
+    wide: 1.5,
+    hero: 2,
+  },
+
   sizes: {
     xs: 10,
     sm: 12,
@@ -77,15 +98,24 @@ export const RADIUS = {
 
 export const SHADOWS = {
   small: {
-    boxShadow: '0px 2px 4px rgba(108, 92, 231, 0.1)',
+    shadowColor: '#3A312B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
     elevation: 2,
   },
   medium: {
-    boxShadow: '0px 4px 8px rgba(108, 92, 231, 0.15)',
+    shadowColor: '#3A312B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 4,
   },
   large: {
-    boxShadow: '0px 8px 16px rgba(108, 92, 231, 0.2)',
+    shadowColor: '#3A312B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
     elevation: 8,
   },
 };

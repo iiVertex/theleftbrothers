@@ -1,336 +1,350 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Modal, Switch, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SHADOWS } from '../constants/theme';
+import { COLORS, FONTS, SHADOWS } from '../constants/theme';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProfileScreen() {
   const { folders, videos, userStats, settings, setSettings } = useData();
+  const { user } = useAuth();
   const [isSettingsVisible, setSettingsVisible] = useState(false);
 
-  const toggleNotifications = () => setSettings({...settings, notificationsEnabled: !settings.notificationsEnabled});
-  const toggleDarkMode = () => setSettings({...settings, isDarkMode: !settings.isDarkMode});
-  
-  const incrementVideoLimit = () => setSettings({...settings, dailyVideoLimit: settings.dailyVideoLimit + 1});
-  const decrementVideoLimit = () => setSettings({...settings, dailyVideoLimit: Math.max(1, settings.dailyVideoLimit - 1)});
+  const toggleNotifications = () => setSettings({ ...settings, notificationsEnabled: !settings.notificationsEnabled });
+  const toggleDarkMode = () => setSettings({ ...settings, isDarkMode: !settings.isDarkMode });
+
+  const incrementVideoLimit = () => setSettings({ ...settings, dailyVideoLimit: settings.dailyVideoLimit + 1 });
+  const decrementVideoLimit = () => setSettings({ ...settings, dailyVideoLimit: Math.max(1, settings.dailyVideoLimit - 1) });
 
   const incrementNightTime = () => {
     let [hours, mins] = settings.nightTimeLimit.split(':').map(Number);
     hours = (hours + 1) % 24;
-    setSettings({...settings, nightTimeLimit: `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`});
+    setSettings({ ...settings, nightTimeLimit: `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}` });
   };
-  
+
   const decrementNightTime = () => {
     let [hours, mins] = settings.nightTimeLimit.split(':').map(Number);
     hours = (hours - 1 + 24) % 24;
-    setSettings({...settings, nightTimeLimit: `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`});
+    setSettings({ ...settings, nightTimeLimit: `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}` });
   };
 
   const isDark = settings.isDarkMode;
-  const bg = isDark ? '#121212' : COLORS.white;
-  const text = isDark ? COLORS.white : COLORS.dark;
-  const cardBg = isDark ? '#1E1E1E' : COLORS.white;
-  const border = isDark ? '#333333' : '#F0F0F0';
-  const subText = isDark ? '#A0A0A0' : '#8A8D9F';
+  const bg = isDark ? COLORS.darkBg : COLORS.bg1;
+  const cardBg = isDark ? COLORS.darkCard : COLORS.white;
+  const text = isDark ? COLORS.bg1 : COLORS.text1;
+  const subText = isDark ? COLORS.darkSubText : COLORS.subText;
+  const border = isDark ? COLORS.darkBorder : COLORS.border;
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
-      <View style={styles.background}>
-        <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: isDark ? '#FFB74D' : '#F5A623' }]}>Profile</Text>
-          <TouchableOpacity style={[styles.settingsBtn, { backgroundColor: cardBg }]} onPress={() => setSettingsVisible(true)}>
-            <Ionicons name="settings-outline" size={24} color={text} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: border }]}>
+          <Text style={[styles.headerTitle, { color: text }]}>Profile</Text>
+          <TouchableOpacity
+            style={[styles.settingsBtn, { backgroundColor: cardBg, borderColor: border }]}
+            onPress={() => setSettingsVisible(true)}
+          >
+            <Ionicons name="settings-outline" size={20} color={text} />
           </TouchableOpacity>
         </View>
 
-        {/* User Identity Section */}
+        {/* User Identity */}
         <View style={styles.identityContainer}>
-          <View style={styles.avatarContainer}>
-            <Ionicons name="person" size={50} color={COLORS.primaryLight} />
+          <View style={[styles.avatarContainer, { backgroundColor: isDark ? COLORS.darkCard : COLORS.bg3, borderColor: border }]}>
+            <Ionicons name="person" size={40} color={subText} />
           </View>
-          <Text style={[styles.userName, { color: text }]}>Alex Johnson</Text>
-          <Text style={[styles.userHandle, { color: subText }]}>@alexcreates</Text>
-          <TouchableOpacity style={styles.editProfileBtn}>
-            <Text style={styles.editProfileText}>Edit Profile</Text>
+          <Text style={[styles.userName, { color: text }]}>
+            {user?.user_metadata?.username || user?.email || 'Guest User'}
+          </Text>
+          <Text style={[styles.userHandle, { color: subText }]}>
+            @{user?.user_metadata?.username?.toLowerCase().replace(/\s+/g, '') || 'user'}
+          </Text>
+          <TouchableOpacity style={[styles.editProfileBtn, { borderColor: border }]}>
+            <Text style={[styles.editProfileText, { color: text }]}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Stats Section */}
+        {/* Stats */}
         <View style={styles.statsContainer}>
-          {/* Videos Card */}
-          <View style={[styles.statCard, { backgroundColor: cardBg, borderColor: border }]}>
-            <View style={[styles.iconContainer, { backgroundColor: '#FCE4EC' }]}>
-              <Ionicons name="play-outline" size={24} color="#E91E63" />
+          {[
+            { icon: 'play-outline', label: 'Videos', value: videos.length, iconBg: isDark ? '#2A2520' : COLORS.bg3 },
+            { icon: 'folder-outline', label: 'Folders', value: folders.length, iconBg: isDark ? '#2A2520' : COLORS.bg3 },
+            { icon: 'trending-up', label: 'Views', value: userStats.views, iconBg: isDark ? '#2A2520' : COLORS.bg3 },
+          ].map(({ icon, label, value, iconBg }) => (
+            <View key={label} style={[styles.statCard, { backgroundColor: cardBg, borderColor: border }]}>
+              <View style={[styles.iconContainer, { backgroundColor: iconBg }]}>
+                <Ionicons name={icon} size={20} color={subText} />
+              </View>
+              <Text style={[styles.statNumber, { color: text }]}>{value}</Text>
+              <Text style={[styles.statLabel, { color: subText }]}>{label}</Text>
             </View>
-            <Text style={[styles.statNumber, { color: text }]}>{videos.length}</Text>
-            <Text style={[styles.statLabel, { color: subText }]}>Videos</Text>
-          </View>
-
-          {/* Folders Card */}
-          <View style={[styles.statCard, { backgroundColor: cardBg, borderColor: border }]}>
-            <View style={[styles.iconContainer, { backgroundColor: '#FFF3E0' }]}>
-              <Ionicons name="folder-outline" size={24} color="#F5A623" />
-            </View>
-            <Text style={[styles.statNumber, { color: text }]}>{folders.length}</Text>
-            <Text style={[styles.statLabel, { color: subText }]}>Folders</Text>
-          </View>
-
-          {/* Views Card */}
-          <View style={[styles.statCard, { backgroundColor: cardBg, borderColor: border }]}>
-            <View style={[styles.iconContainer, { backgroundColor: '#FFF3E0' }]}>
-              <Ionicons name="trending-up" size={24} color="#F5A623" />
-            </View>
-            <Text style={[styles.statNumber, { color: text }]}>{userStats.views}</Text>
-            <Text style={[styles.statLabel, { color: subText }]}>Views</Text>
-          </View>
+          ))}
         </View>
 
-        <View style={styles.content}>
-          <View style={[styles.streakCard, { backgroundColor: cardBg, borderColor: border }]}>
-            <View style={styles.streakHeader}>
-              <View style={styles.streakIconWrapper}>
-                <Ionicons name="flame" size={24} color="#FF6B6B" />
-              </View>
-              <View>
-                <Text style={[styles.streakTitle, { color: text }]}>Current Streak</Text>
-                <Text style={[styles.streakSubtitle, { color: subText }]}>Keep the momentum going!</Text>
-              </View>
+        {/* Streak Card */}
+        <View style={[styles.streakCard, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={styles.streakHeader}>
+            <View style={[styles.streakIconWrapper, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg3 }]}>
+              <Ionicons name="flame" size={20} color={subText} />
             </View>
-            
-            <View style={[styles.streakStats, { backgroundColor: isDark ? '#2C2C2C' : '#FAFAFA' }]}>
-              <View style={styles.streakStat}>
-                <Text style={styles.streakNumber}>{userStats.streakDays}</Text>
-                <Text style={[styles.streakLabel, { color: subText }]}>Days</Text>
-              </View>
-              
-              <View style={[styles.streakDivider, { backgroundColor: border }]} />
-              
-              <View style={styles.streakStat}>
-                <Text style={styles.streakNumber}>{userStats.streakWeeks}</Text>
-                <Text style={[styles.streakLabel, { color: subText }]}>Weeks</Text>
-              </View>
-
-              <View style={[styles.streakDivider, { backgroundColor: border }]} />
-              
-              <View style={styles.streakStat}>
-                <Text style={styles.streakNumber}>{userStats.streakMonths}</Text>
-                <Text style={[styles.streakLabel, { color: subText }]}>Month</Text>
-              </View>
+            <View>
+              <Text style={[styles.streakTitle, { color: text }]}>Current Streak</Text>
+              <Text style={[styles.streakSubtitle, { color: subText }]}>Keep the momentum going!</Text>
             </View>
           </View>
-        </View>
-        {/* SETTINGS MODAL */}
-        <Modal visible={isSettingsVisible} animationType="slide" transparent={true}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.settingsContent, { backgroundColor: cardBg }]}>
-              <View style={styles.settingsHeader}>
-                <Text style={[styles.settingsTitle, { color: text }]}>Settings</Text>
-                <TouchableOpacity onPress={() => setSettingsVisible(false)} style={[styles.closeSettingsBtn, { backgroundColor: isDark ? '#2C2C2C' : COLORS.offWhite }]}>
-                  <Ionicons name="close" size={24} color={text} />
-                </TouchableOpacity>
-              </View>
 
-              <ScrollView 
-                showsVerticalScrollIndicator={false}
-                bounces={true}
-                decelerationRate="fast"
-                scrollEventThrottle={16}
+          <View style={[styles.streakStats, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg2 }]}>
+            {[
+              { value: userStats.streakDays, label: 'Days' },
+              { value: userStats.streakWeeks, label: 'Weeks' },
+              { value: userStats.streakMonths, label: 'Month' },
+            ].map(({ value, label }, i) => (
+              <React.Fragment key={label}>
+                {i > 0 && <View style={[styles.streakDivider, { backgroundColor: border }]} />}
+                <View style={styles.streakStat}>
+                  <Text style={[styles.streakNumber, { color: text }]}>{value}</Text>
+                  <Text style={[styles.streakLabel, { color: subText }]}>{label}</Text>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* SETTINGS MODAL */}
+      <Modal visible={isSettingsVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.settingsContent, { backgroundColor: isDark ? COLORS.darkCard : COLORS.white, borderColor: border }]}>
+            <View style={styles.settingsHeader}>
+              <Text style={[styles.settingsTitle, { color: text }]}>Settings</Text>
+              <TouchableOpacity
+                onPress={() => setSettingsVisible(false)}
+                style={[styles.closeSettingsBtn, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg2 }]}
               >
-                {/* Notifications Toggle */}
-                <View style={[styles.settingRow, { borderBottomColor: border }]}>
-                  <View style={styles.settingTextContainer}>
-                    <Text style={[styles.settingLabel, { color: text }]}>Notifications</Text>
-                    <Text style={[styles.settingDescription, { color: subText }]}>Receive daily reminders</Text>
-                  </View>
-                  <Switch 
-                    value={settings.notificationsEnabled} 
-                    onValueChange={toggleNotifications}
-                    trackColor={{ false: '#767577', true: '#FFB74D' }}
-                    thumbColor={COLORS.white}
-                  />
-                </View>
-
-                {/* Dark Mode Toggle */}
-                <View style={[styles.settingRow, { borderBottomColor: border }]}>
-                  <View style={styles.settingTextContainer}>
-                    <Text style={[styles.settingLabel, { color: text }]}>Dark Mode</Text>
-                    <Text style={[styles.settingDescription, { color: subText }]}>Easier on the eyes</Text>
-                  </View>
-                  <Switch 
-                    value={settings.isDarkMode} 
-                    onValueChange={toggleDarkMode}
-                    trackColor={{ false: '#767577', true: '#FFB74D' }}
-                    thumbColor={COLORS.white}
-                  />
-                </View>
-
-                {/* Night-Time Limit */}
-                <View style={[styles.settingRow, { borderBottomColor: border }]}>
-                  <View style={styles.settingTextContainer}>
-                    <Text style={[styles.settingLabel, { color: text }]}>Night-time Limit</Text>
-                    <Text style={[styles.settingDescription, { color: subText }]}>Warn me when editing past this time</Text>
-                  </View>
-                  <View style={styles.stepperContainer}>
-                    <TouchableOpacity onPress={decrementNightTime} style={[styles.stepperBtn, { backgroundColor: isDark ? '#2C2C2C' : COLORS.offWhite }]}>
-                      <Ionicons name="chevron-back" size={20} color={text} />
-                    </TouchableOpacity>
-                    <Text style={[styles.stepperText, { color: text }]}>{settings.nightTimeLimit}</Text>
-                    <TouchableOpacity onPress={incrementNightTime} style={[styles.stepperBtn, { backgroundColor: isDark ? '#2C2C2C' : COLORS.offWhite }]}>
-                      <Ionicons name="chevron-forward" size={20} color={text} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Daily Video Limit */}
-                <View style={[styles.settingRow, { borderBottomColor: border, borderBottomWidth: 0 }]}>
-                  <View style={styles.settingTextContainer}>
-                    <Text style={[styles.settingLabel, { color: text }]}>Daily Video Limit</Text>
-                    <Text style={[styles.settingDescription, { color: subText }]}>Maximum uploads per day</Text>
-                  </View>
-                  <View style={styles.stepperContainer}>
-                    <TouchableOpacity onPress={decrementVideoLimit} style={[styles.stepperBtn, { backgroundColor: isDark ? '#2C2C2C' : COLORS.offWhite }]}>
-                      <Ionicons name="remove" size={20} color={text} />
-                    </TouchableOpacity>
-                    <Text style={[styles.stepperText, { color: text }]}>{settings.dailyVideoLimit}</Text>
-                    <TouchableOpacity onPress={incrementVideoLimit} style={[styles.stepperBtn, { backgroundColor: isDark ? '#2C2C2C' : COLORS.offWhite }]}>
-                      <Ionicons name="add" size={20} color={text} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
+                <Ionicons name="close" size={20} color={text} />
+              </TouchableOpacity>
             </View>
-          </View>
-        </Modal>
 
-      </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Notifications Toggle */}
+              <View style={[styles.settingRow, { borderBottomColor: border }]}>
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: text }]}>Notifications</Text>
+                  <Text style={[styles.settingDescription, { color: subText }]}>Receive daily reminders</Text>
+                </View>
+                <Switch
+                  value={settings.notificationsEnabled}
+                  onValueChange={toggleNotifications}
+                  trackColor={{ false: border, true: COLORS.accent }}
+                  thumbColor={COLORS.white}
+                />
+              </View>
+
+              {/* Dark Mode Toggle */}
+              <View style={[styles.settingRow, { borderBottomColor: border }]}>
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: text }]}>Dark Mode</Text>
+                  <Text style={[styles.settingDescription, { color: subText }]}>Easier on the eyes</Text>
+                </View>
+                <Switch
+                  value={settings.isDarkMode}
+                  onValueChange={toggleDarkMode}
+                  trackColor={{ false: border, true: COLORS.accent }}
+                  thumbColor={COLORS.white}
+                />
+              </View>
+
+              {/* Night-Time Limit */}
+              <View style={[styles.settingRow, { borderBottomColor: border }]}>
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: text }]}>Night-time Limit</Text>
+                  <Text style={[styles.settingDescription, { color: subText }]}>Warn me past this time</Text>
+                </View>
+                <View style={styles.stepperContainer}>
+                  <TouchableOpacity
+                    onPress={decrementNightTime}
+                    style={[styles.stepperBtn, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg2, borderColor: border }]}
+                  >
+                    <Ionicons name="chevron-back" size={16} color={text} />
+                  </TouchableOpacity>
+                  <Text style={[styles.stepperText, { color: text }]}>{settings.nightTimeLimit}</Text>
+                  <TouchableOpacity
+                    onPress={incrementNightTime}
+                    style={[styles.stepperBtn, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg2, borderColor: border }]}
+                  >
+                    <Ionicons name="chevron-forward" size={16} color={text} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Daily Video Limit */}
+              <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
+                <View style={styles.settingTextContainer}>
+                  <Text style={[styles.settingLabel, { color: text }]}>Daily Video Limit</Text>
+                  <Text style={[styles.settingDescription, { color: subText }]}>Maximum uploads per day</Text>
+                </View>
+                <View style={styles.stepperContainer}>
+                  <TouchableOpacity
+                    onPress={decrementVideoLimit}
+                    style={[styles.stepperBtn, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg2, borderColor: border }]}
+                  >
+                    <Ionicons name="remove" size={16} color={text} />
+                  </TouchableOpacity>
+                  <Text style={[styles.stepperText, { color: text }]}>{settings.dailyVideoLimit}</Text>
+                  <TouchableOpacity
+                    onPress={incrementVideoLimit}
+                    style={[styles.stepperBtn, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg2, borderColor: border }]}
+                  >
+                    <Ionicons name="add" size={16} color={text} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white },
-  background: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 12 },
-  headerTitle: { fontSize: 32, fontWeight: '800', color: '#F5A623' }, // Orange
-  settingsBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.offWhite, justifyContent: 'center', alignItems: 'center' },
-  identityContainer: { alignItems: 'center', marginBottom: 28 },
-  avatarContainer: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(108, 92, 231, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 12, borderWidth: 3, borderColor: COLORS.white, ...SHADOWS.small },
-  userName: { fontSize: 24, fontWeight: '800', color: COLORS.dark, marginBottom: 4 },
-  userHandle: { fontSize: 15, color: COLORS.gray, marginBottom: 16 },
-  editProfileBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.primary },
-  editProfileText: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
-  statsContainer: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
+  container: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 24,
-    gap: 12
+    paddingTop: 64,
+    paddingBottom: 18,
+    borderBottomWidth: 1,
+  },
+  headerTitle: { fontFamily: FONTS.serifBold, fontSize: 30, letterSpacing: 0 },
+  settingsBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  identityContainer: { alignItems: 'center', paddingVertical: 28 },
+  avatarContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  userName: { fontFamily: FONTS.serifBold, fontSize: 26, letterSpacing: 0, marginBottom: 4 },
+  userHandle: { fontSize: 14, fontWeight: '500', marginBottom: 16 },
+  editProfileBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 9,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  editProfileText: { fontSize: 13, fontWeight: '700' },
+
+  statsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    gap: 10,
+    marginBottom: 20,
   },
   statCard: {
     flex: 1,
-    backgroundColor: COLORS.white,
-    borderWidth: 1.5,
-    borderColor: '#F0F0F0',
-    borderRadius: 20,
-    paddingVertical: 20,
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingVertical: 18,
     alignItems: 'center',
+    ...SHADOWS.small,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: COLORS.dark,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#8A8D9F', // matching gray from design
-    fontWeight: '600',
-  },
-  content: { 
-    flex: 1,
-  },
+  statNumber: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5, marginBottom: 3 },
+  statLabel: { fontSize: 11, fontWeight: '700', letterSpacing: FONTS.tracking.tight, textTransform: 'uppercase' },
+
   streakCard: {
     marginHorizontal: 24,
-    marginTop: 24,
-    backgroundColor: COLORS.white,
-    borderWidth: 1.5,
-    borderColor: '#F0F0F0',
+    borderWidth: 1,
     borderRadius: 20,
     padding: 20,
+    ...SHADOWS.small,
   },
-  streakHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
+  streakHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
   streakIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#FFF0F0', // Soft red/pink
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 14,
   },
-  streakTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.dark,
-    marginBottom: 4,
-  },
-  streakSubtitle: {
-    fontSize: 14,
-    color: '#8A8D9F',
-  },
+  streakTitle: { fontSize: 13, fontWeight: '700', letterSpacing: FONTS.tracking.wide, textTransform: 'uppercase', marginBottom: 2 },
+  streakSubtitle: { fontSize: 13, fontWeight: '500' },
   streakStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FAFAFA',
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingVertical: 14,
   },
-  streakStat: {
-    flex: 1,
+  streakStat: { flex: 1, alignItems: 'center' },
+  streakNumber: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5, marginBottom: 3 },
+  streakLabel: { fontSize: 11, fontWeight: '700', letterSpacing: FONTS.tracking.tight, textTransform: 'uppercase' },
+  streakDivider: { width: 1, height: 36 },
+
+  // Settings Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  settingsContent: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: 40,
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    ...SHADOWS.large,
+  },
+  settingsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  settingsTitle: { fontSize: 20, fontWeight: '800' },
+  closeSettingsBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  settingTextContainer: { flex: 1, paddingRight: 16 },
+  settingLabel: { fontSize: 15, fontWeight: '700', marginBottom: 3 },
+  settingDescription: { fontSize: 13, fontWeight: '400' },
+  stepperContainer: { flexDirection: 'row', alignItems: 'center' },
+  stepperBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  streakNumber: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FF6B6B', // Fire color
-    marginBottom: 4,
+  stepperText: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginHorizontal: 10,
+    minWidth: 36,
+    textAlign: 'center',
   },
-  streakLabel: {
-    fontSize: 14,
-    color: '#8A8D9F',
-    fontWeight: '600',
-  },
-  streakDivider: {
-    width: 1.5,
-    height: 40,
-    backgroundColor: '#F0F0F0',
-  },
-  
-  // Settings Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  settingsContent: { backgroundColor: COLORS.white, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, paddingBottom: 40, maxHeight: '80%', ...SHADOWS.large },
-  settingsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  settingsTitle: { fontSize: 24, fontWeight: '800', color: COLORS.dark },
-  closeSettingsBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.offWhite, justifyContent: 'center', alignItems: 'center' },
-  
-  settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
-  settingTextContainer: { flex: 1, paddingRight: 16 },
-  settingLabel: { fontSize: 16, fontWeight: '700', color: COLORS.dark, marginBottom: 4 },
-  settingDescription: { fontSize: 13, color: '#8A8D9F' },
-  
-  stepperContainer: { flexDirection: 'row', alignItems: 'center' },
-  stepperBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.offWhite, justifyContent: 'center', alignItems: 'center' },
-  stepperText: { fontSize: 16, fontWeight: '700', color: COLORS.dark, marginHorizontal: 12, minWidth: 40, textAlign: 'center' },
 });

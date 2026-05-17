@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, StatusBar, ScrollView, TouchableOpacity, Dimensions, Modal, FlatList } from 'react-native';
+import {
+  View, Text, StyleSheet, StatusBar, ScrollView, TouchableOpacity,
+  Dimensions, Modal, FlatList,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Video, ResizeMode } from 'expo-av';
-import { COLORS, SHADOWS } from '../constants/theme';
+import { COLORS, FONTS, SHADOWS } from '../constants/theme';
 import { useData } from '../context/DataContext';
 
 const { width, height } = Dimensions.get('window');
@@ -33,14 +35,9 @@ export default function ReelsScreen() {
   useEffect(() => {
     if (!isPlaying) return;
     let next = [...videos];
-    if (activeFolder !== 'all') {
-      next = next.filter(v => v.folder_id === activeFolder);
-    }
-    if (activeCriteria === 'Shuffle') {
-      next.sort(() => Math.random() - 0.5);
-    } else if (activeCriteria === 'Latest') {
-      next.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    }
+    if (activeFolder !== 'all') next = next.filter(v => v.folder_id === activeFolder);
+    if (activeCriteria === 'Shuffle') next.sort(() => Math.random() - 0.5);
+    else if (activeCriteria === 'Latest') next.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
     setFilteredVideos(next);
     setCurrentVideoIndex(0);
   }, [isPlaying, videos, activeFolder, activeCriteria]);
@@ -48,12 +45,11 @@ export default function ReelsScreen() {
   const folderChips = [{ id: 'all', name: 'All', icon: 'apps' }, ...folders];
 
   const isDark = settings?.isDarkMode;
-  const bg = isDark ? '#121212' : COLORS.white;
-  const cardBg = isDark ? '#1E1E1E' : COLORS.white;
-  const text = isDark ? COLORS.white : COLORS.dark;
-  const subText = isDark ? '#A0A0A0' : COLORS.gray;
-  const border = isDark ? '#333333' : '#F0F0F0';
-  const iconBg = isDark ? '#2C2C2C' : '#F0F0F5';
+  const bg = isDark ? COLORS.darkBg : COLORS.bg1;
+  const cardBg = isDark ? COLORS.darkCard : COLORS.white;
+  const text = isDark ? COLORS.bg1 : COLORS.text1;
+  const subText = isDark ? COLORS.darkSubText : COLORS.subText;
+  const border = isDark ? COLORS.darkBorder : COLORS.border;
 
   const renderVideoItem = ({ item, index }) => (
     <View style={styles.videoContainer}>
@@ -71,9 +67,9 @@ export default function ReelsScreen() {
           {!!item.description && <Text style={styles.videoDescription}>{item.description}</Text>}
         </View>
         <View style={styles.videoActions}>
-          <TouchableOpacity style={styles.actionIcon}><Ionicons name="heart" size={32} color={COLORS.white} /></TouchableOpacity>
-          <TouchableOpacity style={styles.actionIcon}><Ionicons name="share-social" size={32} color={COLORS.white} /></TouchableOpacity>
-          <TouchableOpacity style={styles.actionIcon}><Ionicons name="ellipsis-vertical" size={32} color={COLORS.white} /></TouchableOpacity>
+          <TouchableOpacity style={styles.actionIcon}><Ionicons name="heart" size={28} color={COLORS.white} /></TouchableOpacity>
+          <TouchableOpacity style={styles.actionIcon}><Ionicons name="share-social" size={28} color={COLORS.white} /></TouchableOpacity>
+          <TouchableOpacity style={styles.actionIcon}><Ionicons name="ellipsis-vertical" size={28} color={COLORS.white} /></TouchableOpacity>
         </View>
       </View>
     </View>
@@ -83,14 +79,10 @@ export default function ReelsScreen() {
     <View style={[styles.container, { backgroundColor: bg }]}>
       <StatusBar barStyle={isPlaying || isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        bounces={true}
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.headerContainer}>
-          <Text style={[styles.headerTitle, { color: isDark ? '#FFB74D' : '#F5A623' }]}>Discover</Text>
+        <View style={[styles.headerContainer, { borderBottomColor: border }]}>
+          <Text style={[styles.headerTitle, { color: text }]}>Discover</Text>
           <Text style={[styles.headerSubtitle, { color: subText }]}>What do you want to watch today?</Text>
         </View>
 
@@ -105,16 +97,25 @@ export default function ReelsScreen() {
                   key={item.id}
                   style={[
                     styles.criteriaCard,
-                    { backgroundColor: cardBg, borderColor: border },
+                    { backgroundColor: cardBg, borderColor: isActive ? COLORS.accent : border },
                     isActive && styles.criteriaCardActive,
                   ]}
                   onPress={() => setActiveCriteria(item.id)}
-                  activeOpacity={0.7}
+                  activeOpacity={0.75}
                 >
-                  <View style={[styles.criteriaIcon, { backgroundColor: isActive ? '#F5A623' : iconBg }]}>
-                    <Ionicons name={item.icon} size={22} color={isActive ? COLORS.white : COLORS.primary} />
+                  <View style={[
+                    styles.criteriaIcon,
+                    { backgroundColor: isActive ? COLORS.accent : (isDark ? COLORS.darkBorder : COLORS.bg2) },
+                  ]}>
+                    <Ionicons
+                      name={item.icon}
+                      size={20}
+                      color={isActive ? COLORS.bg1 : subText}
+                    />
                   </View>
-                  <Text style={[styles.criteriaText, { color: isActive ? '#F5A623' : text }]}>{item.label}</Text>
+                  <Text style={[styles.criteriaText, { color: isActive ? COLORS.accent : text }]}>
+                    {item.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -127,25 +128,23 @@ export default function ReelsScreen() {
           <View style={styles.chipWrap}>
             {folderChips.map((f) => {
               const isActive = activeFolder === f.id;
-              const chipColor = f.id === 'all' ? COLORS.primary : (f.color || COLORS.primary);
               return (
                 <TouchableOpacity
                   key={f.id}
                   style={[
                     styles.chip,
-                    { backgroundColor: cardBg, borderColor: border },
-                    isActive && { backgroundColor: '#F5A623', borderColor: '#F5A623' },
+                    { backgroundColor: isActive ? COLORS.accent : cardBg, borderColor: isActive ? COLORS.accent : border },
                   ]}
                   onPress={() => setActiveFolder(f.id)}
-                  activeOpacity={0.7}
+                  activeOpacity={0.75}
                 >
                   <Ionicons
                     name={f.icon || 'folder'}
-                    size={16}
-                    color={isActive ? COLORS.white : chipColor}
+                    size={14}
+                    color={isActive ? COLORS.bg1 : subText}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={[styles.chipText, { color: isActive ? COLORS.white : text }]}>{f.name}</Text>
+                  <Text style={[styles.chipText, { color: isActive ? COLORS.bg1 : text }]}>{f.name}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -155,18 +154,15 @@ export default function ReelsScreen() {
         <View style={{ height: 200 }} />
       </ScrollView>
 
-      {/* Start Watching Button (floats above the tab bar) */}
+      {/* Start Watching Button */}
       <View style={styles.playButtonContainer}>
-        <TouchableOpacity activeOpacity={0.85} onPress={() => setIsPlaying(true)}>
-          <LinearGradient
-            colors={['#F5A623', '#FFC061']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.playButton}
-          >
-            <Ionicons name="play" size={22} color={COLORS.white} />
-            <Text style={styles.playButtonText}>Start Watching</Text>
-          </LinearGradient>
+        <TouchableOpacity
+          style={styles.playButton}
+          activeOpacity={0.85}
+          onPress={() => setIsPlaying(true)}
+        >
+          <Ionicons name="play" size={20} color={COLORS.bg1} />
+          <Text style={styles.playButtonText}>Start Watching</Text>
         </TouchableOpacity>
       </View>
 
@@ -175,7 +171,7 @@ export default function ReelsScreen() {
         <View style={styles.modalContainer}>
           {filteredVideos.length === 0 ? (
             <View style={styles.videoPlaceholder}>
-              <Ionicons name="videocam-off-outline" size={72} color="rgba(255,255,255,0.5)" />
+              <Ionicons name="videocam-off-outline" size={64} color="rgba(255,255,255,0.4)" />
               <Text style={styles.videoTempText}>No videos found</Text>
             </View>
           ) : (
@@ -190,7 +186,7 @@ export default function ReelsScreen() {
             />
           )}
           <TouchableOpacity style={styles.closeModalBtn} onPress={() => setIsPlaying(false)}>
-            <Ionicons name="close" size={28} color={COLORS.white} />
+            <Ionicons name="close" size={24} color={COLORS.white} />
           </TouchableOpacity>
         </View>
       </Modal>
@@ -202,65 +198,66 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingBottom: 20 },
 
-  // Header (matches Folders / Profile screens)
-  headerContainer: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 8 },
-  headerTitle: { fontSize: 32, fontWeight: '800', marginBottom: 2 },
+  headerContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 64,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+  },
+  headerTitle: { fontFamily: FONTS.serifBold, fontSize: 30, letterSpacing: 0, marginBottom: 4 },
   headerSubtitle: { fontSize: 14, fontWeight: '500' },
 
-  // Sections
   section: { paddingHorizontal: 24, marginTop: 24 },
-  sectionTitle: { fontSize: 20, fontWeight: '800', marginBottom: 16 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', marginBottom: 14, letterSpacing: FONTS.tracking.wide, textTransform: 'uppercase' },
 
-  // Criteria grid (matches Folders folder cards)
-  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 },
   criteriaCard: {
-    width: '47%',
-    borderRadius: 20,
+    width: '47.5%',
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 14,
     borderWidth: 1,
+    marginBottom: 4,
     ...SHADOWS.small,
   },
-  criteriaCardActive: { borderColor: '#F5A623' },
+  criteriaCardActive: {},
   criteriaIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  criteriaText: { fontSize: 15, fontWeight: '700' },
+  criteriaText: { fontSize: 14, fontWeight: '700' },
 
-  // Folder chips
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 30,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 24,
     borderWidth: 1,
   },
-  chipText: { fontSize: 14, fontWeight: '600' },
+  chipText: { fontSize: 13, fontWeight: '600' },
 
-  // Start Watching button
   playButtonContainer: { position: 'absolute', bottom: 116, left: 24, right: 24 },
   playButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 56,
-    borderRadius: 16,
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: COLORS.accent,
     gap: 10,
     ...SHADOWS.medium,
   },
-  playButtonText: { color: COLORS.white, fontSize: 16, fontWeight: '800' },
+  playButtonText: { color: COLORS.bg1, fontSize: 16, fontWeight: '700' },
 
-  // Full screen player
+  // Full screen player (stays dark — it's a video experience)
   modalContainer: { flex: 1, backgroundColor: '#000' },
   videoPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111' },
-  videoTempText: { color: COLORS.white, fontSize: 18, fontWeight: '700', marginTop: 16 },
+  videoTempText: { color: COLORS.white, fontSize: 16, fontWeight: '600', marginTop: 16 },
   videoContainer: { width, height, backgroundColor: '#000' },
   videoOverlay: {
     position: 'absolute',
@@ -271,24 +268,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
   videoInfo: { flex: 1, marginRight: 20 },
   videoTitle: {
     color: COLORS.white,
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0,0,0,0.75)',
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10,
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
   },
-  videoDescription: { color: COLORS.white, fontSize: 14 },
+  videoDescription: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
   videoActions: { alignItems: 'center' },
   actionIcon: { marginBottom: 20 },
   closeModalBtn: {
     position: 'absolute',
-    top: 50,
+    top: 52,
     left: 20,
     width: 44,
     height: 44,

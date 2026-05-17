@@ -20,8 +20,7 @@ export default function AppNavigator() {
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
-          animationDuration: 500, // Slower, powerful transition
-          contentStyle: { backgroundColor: '#0F0F1E' },
+          contentStyle: { backgroundColor: '#F5F0E8' },
         }}
       >
         <Stack.Screen name="Onboarding1" component={Onboarding1Screen} />
@@ -29,15 +28,12 @@ export default function AppNavigator() {
         <Stack.Screen name="SignIn" component={SignInScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
         <Stack.Screen name="Home" component={MainTabNavigator} />
-        <Stack.Screen 
-          name="CreateVideo" 
-          component={CreateVideoScreen} 
-          options={{ presentation: 'modal' }} // Opens like a modal/sheet from bottom on iOS
+        <Stack.Screen
+          name="CreateVideo"
+          component={CreateVideoScreen}
+          options={{ presentation: 'modal' }}
         />
-        <Stack.Screen 
-          name="FolderDetail" 
-          component={FolderDetailScreen} 
-        />
+        <Stack.Screen name="FolderDetail" component={FolderDetailScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

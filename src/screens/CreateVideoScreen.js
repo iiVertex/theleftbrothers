@@ -1,28 +1,18 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  TextInput, 
-  ScrollView, 
-  KeyboardAvoidingView, 
-  Platform,
-  StatusBar,
-  ActivityIndicator,
-  Alert
+import {
+  View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView,
+  KeyboardAvoidingView, Platform, StatusBar, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../utils/supabase';
-
-import { COLORS } from '../constants/theme';
+import { COLORS, FONTS, SHADOWS } from '../constants/theme';
 import { useData } from '../context/DataContext';
 
 export default function CreateVideoScreen({ navigation }) {
-  const [activeTab, setActiveTab] = useState('upload'); // 'upload' or 'record'
+  const [activeTab, setActiveTab] = useState('upload');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [folder, setFolder] = useState(null);
@@ -32,19 +22,15 @@ export default function CreateVideoScreen({ navigation }) {
   const [isUploading, setIsUploading] = useState(false);
 
   const { settings, folders, addVideo } = useData();
-  
+
   const isDark = settings?.isDarkMode;
-  const bg = isDark ? '#121212' : COLORS.white;
-  const cardBg = isDark ? '#1E1E1E' : COLORS.white;
-  const text = isDark ? COLORS.white : COLORS.dark;
-  const subText = isDark ? '#A0A0A0' : COLORS.gray;
-  const border = isDark ? '#333333' : '#F0F0F0';
-  const inputBorder = isDark ? '#444' : '#E8E8E8';
-  const inputBg = isDark ? '#2C2C2C' : COLORS.white;
-  const toggleBg = isDark ? '#2C2C2C' : COLORS.offWhite;
-  const uploadBg = isDark ? '#1E1E1E' : '#FAFAFA';
-  const uploadBorderColor = isDark ? '#444' : '#E8E8E8';
-  const footerBg = isDark ? '#1E1E1E' : COLORS.white;
+  const bg = isDark ? COLORS.darkBg : COLORS.bg1;
+  const cardBg = isDark ? COLORS.darkCard : COLORS.white;
+  const text = isDark ? COLORS.bg1 : COLORS.text1;
+  const subText = isDark ? COLORS.darkSubText : COLORS.subText;
+  const border = isDark ? COLORS.darkBorder : COLORS.border;
+  const inputBg = isDark ? COLORS.darkCard : COLORS.white;
+  const toggleBg = isDark ? COLORS.darkBorder : COLORS.bg2;
 
   const pickVideo = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -52,7 +38,6 @@ export default function CreateVideoScreen({ navigation }) {
       allowsEditing: true,
       quality: 1,
     });
-
     if (!result.canceled) {
       setVideoUri(result.assets[0].uri);
       setVideoMime(result.assets[0].mimeType || null);
@@ -61,58 +46,38 @@ export default function CreateVideoScreen({ navigation }) {
 
   const uploadVideo = async () => {
     if (!videoUri || !title || !folder) {
-      Alert.alert("Missing Fields", "Please provide a video, title, and select a folder.");
+      Alert.alert('Missing Fields', 'Please provide a video, title, and select a folder.');
       return;
     }
-
     setIsUploading(true);
     try {
       const mime = videoMime || 'video/mp4';
       const ext = (mime.split('/')[1] || 'mp4').toLowerCase();
 
-      // 1. Read the picked video into an ArrayBuffer (platform-specific)
       let fileData;
       if (Platform.OS === 'web') {
-        // On web the picked URI is a blob: URL — fetch reads it directly
         const response = await fetch(videoUri);
         fileData = await response.arrayBuffer();
       } else {
-        // expo-file-system only works on native
-        const base64File = await FileSystem.readAsStringAsync(videoUri, {
-          encoding: 'base64',
-        });
+        const base64File = await FileSystem.readAsStringAsync(videoUri, { encoding: 'base64' });
         fileData = decode(base64File);
       }
 
-      // 2. Generate unique filename
       const filePath = `${Date.now()}.${ext}`;
-
-      // 3. Upload to Supabase Storage
-      const { error: storageError } = await supabase.storage
-        .from('videos')
-        .upload(filePath, fileData, {
-          contentType: mime,
-        });
-
+      const { error: storageError } = await supabase.storage.from('videos').upload(filePath, fileData, { contentType: mime });
       if (storageError) throw storageError;
 
-      // 4. Get Public URL
-      const { data: publicUrlData } = supabase.storage
-        .from('videos')
-        .getPublicUrl(filePath);
-        
+      const { data: publicUrlData } = supabase.storage.from('videos').getPublicUrl(filePath);
       const videoUrl = publicUrlData.publicUrl;
 
-      // 5. Save to Database via context
       const { error: dbError } = await addVideo(title, description, videoUrl, folder?.id || 'root');
       if (dbError) throw dbError;
 
-      Alert.alert("Success", "Video uploaded successfully!");
+      Alert.alert('Success', 'Video uploaded successfully!');
       navigation.goBack();
-
     } catch (error) {
       console.error(error);
-      Alert.alert("Upload Failed", error.message);
+      Alert.alert('Upload Failed', error.message);
     } finally {
       setIsUploading(false);
     }
@@ -120,54 +85,49 @@ export default function CreateVideoScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
-      
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
-          <Ionicons name="close" size={28} color={text} />
+          <Ionicons name="close" size={24} color={text} />
         </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: text }]}>Add Video</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent} 
-          showsVerticalScrollIndicator={false}
-          bounces={true}
-        >
-          {/* Titles */}
-          <Text style={[styles.pageTitle, { color: text }]}>Add Video</Text>
-          <Text style={[styles.pageSubtitle, { color: subText }]}>Record or upload your explanation</Text>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <Text style={[styles.pageSubtitle, { color: subText }]}>Record or upload your video</Text>
 
           {/* Toggle Tabs */}
           <View style={[styles.toggleContainer, { backgroundColor: toggleBg }]}>
-            <TouchableOpacity 
-              style={[styles.toggleBtn, activeTab === 'upload' && styles.toggleBtnActive]}
-              onPress={() => setActiveTab('upload')}
-            >
-              <Ionicons name="cloud-upload-outline" size={20} color={activeTab === 'upload' ? COLORS.white : text} />
-              <Text style={[styles.toggleText, { color: text }, activeTab === 'upload' && styles.toggleTextActive]}>Upload</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.toggleBtn, activeTab === 'record' && styles.toggleBtnActive]}
-              onPress={() => setActiveTab('record')}
-            >
-              <Ionicons name="videocam-outline" size={20} color={activeTab === 'record' ? COLORS.white : text} />
-              <Text style={[styles.toggleText, { color: text }, activeTab === 'record' && styles.toggleTextActive]}>Record</Text>
-            </TouchableOpacity>
+            {[
+              { key: 'upload', label: 'Upload', icon: 'cloud-upload-outline' },
+              { key: 'record', label: 'Record', icon: 'videocam-outline' },
+            ].map(({ key, label, icon }) => (
+              <TouchableOpacity
+                key={key}
+                style={[styles.toggleBtn, activeTab === key && styles.toggleBtnActive]}
+                onPress={() => setActiveTab(key)}
+              >
+                <Ionicons name={icon} size={18} color={activeTab === key ? COLORS.bg1 : text} />
+                <Text style={[styles.toggleText, { color: activeTab === key ? COLORS.bg1 : text }]}>{label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
-          {/* Upload/Record Zone */}
-          <TouchableOpacity 
-            style={[styles.uploadZone, { backgroundColor: uploadBg, borderColor: uploadBorderColor }]}
+          {/* Upload Zone */}
+          <TouchableOpacity
+            style={[styles.uploadZone, { backgroundColor: isDark ? COLORS.darkCard : COLORS.bg2, borderColor: border }]}
             onPress={pickVideo}
           >
-            <View style={styles.uploadIconWrapper}>
-              <Ionicons name={videoUri ? 'checkmark-circle' : (activeTab === 'upload' ? 'cloud-upload' : 'videocam')} size={32} color={videoUri ? '#4CAF50' : '#E91E63'} />
+            <View style={[styles.uploadIconWrapper, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg3 }]}>
+              <Ionicons
+                name={videoUri ? 'checkmark-circle' : (activeTab === 'upload' ? 'cloud-upload-outline' : 'videocam-outline')}
+                size={28}
+                color={videoUri ? COLORS.success : subText}
+              />
             </View>
             <Text style={[styles.uploadMainText, { color: text }]}>
               {videoUri ? 'Video Selected' : (activeTab === 'upload' ? 'Tap to select a video' : 'Tap to start recording')}
@@ -179,9 +139,9 @@ export default function CreateVideoScreen({ navigation }) {
 
           {/* Form Fields */}
           <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: text }]}>Title</Text>
+            <Text style={[styles.label, { color: subText }]}>Title</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: inputBg, borderColor: inputBorder, color: text }]}
+              style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: text }]}
               placeholder="e.g., How blood circulates"
               placeholderTextColor={subText}
               value={title}
@@ -190,9 +150,9 @@ export default function CreateVideoScreen({ navigation }) {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: text }]}>Description (optional)</Text>
+            <Text style={[styles.label, { color: subText }]}>Description <Text style={{ fontWeight: '400' }}>(optional)</Text></Text>
             <TextInput
-              style={[styles.input, styles.textArea, { backgroundColor: inputBg, borderColor: inputBorder, color: text }]}
+              style={[styles.input, styles.textArea, { backgroundColor: inputBg, borderColor: border, color: text }]}
               placeholder="Brief description..."
               placeholderTextColor={subText}
               value={description}
@@ -204,28 +164,25 @@ export default function CreateVideoScreen({ navigation }) {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: text }]}>Folder</Text>
-            <TouchableOpacity 
-              style={[styles.dropdownToggle, { backgroundColor: inputBg, borderColor: inputBorder }]}
+            <Text style={[styles.label, { color: subText }]}>Folder</Text>
+            <TouchableOpacity
+              style={[styles.dropdownToggle, { backgroundColor: inputBg, borderColor: border }]}
               onPress={() => setShowDropdown(!showDropdown)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.dropdownText, { color: text }, !folder && { color: subText }]}>
+              <Text style={[styles.dropdownText, { color: folder ? text : subText }]}>
                 {folder ? folder.name : 'Select Folder'}
               </Text>
-              <Ionicons name={showDropdown ? "chevron-up" : "chevron-down"} size={20} color={subText} />
+              <Ionicons name={showDropdown ? 'chevron-up' : 'chevron-down'} size={18} color={subText} />
             </TouchableOpacity>
-            
+
             {showDropdown && (
-              <View style={[styles.dropdownMenu, { backgroundColor: cardBg, borderColor: inputBorder }]}>
+              <View style={[styles.dropdownMenu, { backgroundColor: cardBg, borderColor: border }]}>
                 {folders.filter(f => f.id !== 'root').map((item) => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     key={item.id}
                     style={[styles.dropdownItem, { borderBottomColor: border }]}
-                    onPress={() => {
-                      setFolder(item);
-                      setShowDropdown(false);
-                    }}
+                    onPress={() => { setFolder(item); setShowDropdown(false); }}
                   >
                     <Text style={[styles.dropdownItemText, { color: text }]}>{item.name}</Text>
                   </TouchableOpacity>
@@ -233,22 +190,22 @@ export default function CreateVideoScreen({ navigation }) {
               </View>
             )}
           </View>
-          
-          <View style={{ height: 40 }} />
+
+          <View style={{ height: 100 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Save Button */}
-      <View style={[styles.footer, { backgroundColor: footerBg, borderTopColor: border }]}>
-        <TouchableOpacity 
-            style={[styles.saveButton, isUploading && { opacity: 0.7 }]} 
-            onPress={uploadVideo}
-            disabled={isUploading}
+      {/* Footer / Save Button */}
+      <View style={[styles.footer, { backgroundColor: bg, borderTopColor: border }]}>
+        <TouchableOpacity
+          style={[styles.saveButton, isUploading && { opacity: 0.6 }]}
+          onPress={uploadVideo}
+          disabled={isUploading}
         >
           {isUploading ? (
-              <ActivityIndicator color={COLORS.white} />
+            <ActivityIndicator color={COLORS.bg1} />
           ) : (
-              <Text style={styles.saveButtonText}>Save Video</Text>
+            <Text style={styles.saveButtonText}>Save Video</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -257,170 +214,107 @@ export default function CreateVideoScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-  },
+  container: { flex: 1 },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: 60,
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
   },
-  closeBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 100, // Make room for footer
-  },
-  pageTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: COLORS.dark,
-    marginBottom: 4,
-  },
-  pageSubtitle: {
-    fontSize: 15,
-    color: COLORS.gray,
-    marginBottom: 24,
-  },
+  closeBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 14, fontWeight: '700', letterSpacing: FONTS.tracking.wide, textTransform: 'uppercase' },
+  keyboardView: { flex: 1 },
+  scrollContent: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
+  pageSubtitle: { fontSize: 14, fontWeight: '500', marginBottom: 20 },
+
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: COLORS.offWhite,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 4,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   toggleBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: 11,
+    borderRadius: 11,
+    gap: 7,
   },
-  toggleBtnActive: {
-    backgroundColor: '#F5A623', // Orange active tab
-    elevation: 2,
-  },
-  toggleText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.dark,
-  },
-  toggleTextActive: {
-    color: COLORS.white,
-  },
+  toggleBtnActive: { backgroundColor: COLORS.accent },
+  toggleText: { fontSize: 14, fontWeight: '700' },
+
   uploadZone: {
-    borderWidth: 1.5,
-    borderColor: '#E8E8E8',
+    borderWidth: 1,
     borderStyle: 'dashed',
-    borderRadius: 24,
+    borderRadius: 20,
     paddingVertical: 32,
     alignItems: 'center',
-    marginBottom: 28,
-    backgroundColor: '#FAFAFA',
+    marginBottom: 24,
   },
   uploadIconWrapper: {
     width: 56,
     height: 56,
-    backgroundColor: '#FCE4EC', // Soft pink/purple to match design
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
-  uploadMainText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.dark,
-    marginBottom: 6,
-  },
-  uploadSubText: {
-    fontSize: 14,
-    color: COLORS.gray,
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.dark,
-    marginBottom: 8,
-  },
+  uploadMainText: { fontSize: 15, fontWeight: '700', marginBottom: 5 },
+  uploadSubText: { fontSize: 13, fontWeight: '400' },
+
+  formGroup: { marginBottom: 18 },
+  label: { fontSize: 11, fontWeight: '700', marginBottom: 8, letterSpacing: FONTS.tracking.tight, textTransform: 'uppercase' },
   input: {
     borderWidth: 1,
-    borderColor: '#E8E8E8',
-    borderRadius: 16,
+    borderRadius: 14,
     paddingHorizontal: 16,
-    height: 54,
+    height: 52,
     fontSize: 15,
-    color: COLORS.dark,
-    backgroundColor: COLORS.white,
   },
-  textArea: {
-    height: 100,
-    paddingTop: 16,
-  },
+  textArea: { height: 100, paddingTop: 14 },
   dropdownToggle: {
     borderWidth: 1,
-    borderColor: '#E8E8E8',
-    borderRadius: 16,
+    borderRadius: 14,
     paddingHorizontal: 16,
-    height: 54,
+    height: 52,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
   },
-  dropdownText: {
-    fontSize: 15,
-    color: COLORS.dark,
-  },
+  dropdownText: { fontSize: 15 },
   dropdownMenu: {
-    marginTop: 8,
+    marginTop: 6,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
-    borderRadius: 16,
-    backgroundColor: COLORS.white,
+    borderRadius: 14,
     overflow: 'hidden',
   },
   dropdownItem: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
   },
-  dropdownItemText: {
-    fontSize: 15,
-    color: COLORS.dark,
-  },
+  dropdownItemText: { fontSize: 15, fontWeight: '600' },
+
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     padding: 24,
+    paddingBottom: 36,
     borderTopWidth: 1,
   },
   saveButton: {
-    backgroundColor: '#F5A623',
-    height: 56,
-    borderRadius: 16,
+    backgroundColor: COLORS.accent,
+    height: 54,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  saveButtonText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  saveButtonText: { color: COLORS.bg1, fontSize: 16, fontWeight: '700' },
 });

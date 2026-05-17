@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import HomeScreen from '../screens/HomeScreen';
 import FoldersScreen from '../screens/FoldersScreen';
@@ -10,7 +9,6 @@ import ReelsScreen from '../screens/ReelsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { COLORS, SHADOWS } from '../constants/theme';
 
-const { width } = Dimensions.get('window');
 const Tab = createBottomTabNavigator();
 
 const CustomTabBar = ({ state, descriptors, navigation }) => {
@@ -35,7 +33,6 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
           });
 
           if (!isFocused && !event.defaultPrevented) {
-            // For the Add button, navigate to the CreateVideo modal
             if (route.name === 'Add') {
               navigation.navigate('CreateVideo');
               return;
@@ -45,21 +42,16 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
         };
 
         const onLongPress = () => {
-          navigation.emit({
-            type: 'tabLongPress',
-            target: route.key,
-          });
+          navigation.emit({ type: 'tabLongPress', target: route.key });
         };
 
-        // Determine icon name based on route
         let iconName;
         if (route.name === 'HomeTab') iconName = isFocused ? 'home' : 'home-outline';
         else if (route.name === 'FoldersTab') iconName = isFocused ? 'folder' : 'folder-outline';
-        else if (route.name === 'Add') iconName = 'add-circle';
+        else if (route.name === 'Add') iconName = 'add';
         else if (route.name === 'ReelsTab') iconName = isFocused ? 'play-circle' : 'play-circle-outline';
         else if (route.name === 'ProfileTab') iconName = isFocused ? 'person' : 'person-outline';
 
-        // For the special Add action
         if (route.name === 'Add') {
           return (
             <TouchableOpacity
@@ -70,9 +62,11 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
               testID={options.tabBarTestID}
               onPress={onPress}
               onLongPress={onLongPress}
-              style={styles.tabItem}
+              style={styles.addTabItem}
             >
-               <Ionicons name={iconName} size={32} color="#F5A623" />
+              <View style={styles.addIconCircle}>
+                <Ionicons name={iconName} size={24} color={COLORS.bg1} />
+              </View>
             </TouchableOpacity>
           );
         }
@@ -88,11 +82,13 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
             onLongPress={onLongPress}
             style={[styles.tabItem, isFocused && styles.tabItemFocused]}
           >
-            <Ionicons name={iconName} size={20} color={isFocused ? COLORS.primaryDark : COLORS.gray} />
+            <Ionicons
+              name={iconName}
+              size={20}
+              color={isFocused ? COLORS.accent : COLORS.subText}
+            />
             {isFocused && (
-              <Text style={[styles.tabLabelFocused, { color: COLORS.primaryDark }]}>
-                {label}
-              </Text>
+              <Text style={styles.tabLabelFocused}>{label}</Text>
             )}
           </TouchableOpacity>
         );
@@ -105,9 +101,7 @@ export default function MainTabNavigator() {
   return (
     <Tab.Navigator
       tabBar={props => <CustomTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
+      screenOptions={{ headerShown: false }}
     >
       <Tab.Screen name="HomeTab" component={HomeScreen} options={{ tabBarLabel: 'Home' }} />
       <Tab.Screen name="FoldersTab" component={FoldersScreen} options={{ tabBarLabel: 'Folders' }} />
@@ -121,32 +115,48 @@ export default function MainTabNavigator() {
 const styles = StyleSheet.create({
   tabBarContainer: {
     position: 'absolute',
-    bottom: 30,
-    left: 24,
-    right: 24,
-    height: 70,
-    backgroundColor: COLORS.white, // White pill background
-    borderRadius: 35,
+    bottom: 28,
+    left: 20,
+    right: 20,
+    height: 68,
+    backgroundColor: COLORS.white,
+    borderRadius: 34,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     ...SHADOWS.large,
   },
   tabItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 24,
   },
   tabItemFocused: {
-    backgroundColor: 'rgba(108, 92, 231, 0.12)', // Light purple highlight pill
+    backgroundColor: COLORS.bg2,
   },
   tabLabelFocused: {
     marginLeft: 6,
     fontSize: 13,
     fontWeight: '700',
+    color: COLORS.accent,
+  },
+  addTabItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  addIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
