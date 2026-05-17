@@ -9,6 +9,7 @@ import SignUpScreen from '../screens/SignUpScreen';
 import MainTabNavigator from './MainTabNavigator';
 import CreateVideoScreen from '../screens/CreateVideoScreen';
 import FolderDetailScreen from '../screens/FolderDetailScreen';
+import ProfileEditScreen from '../screens/ProfileEditScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -34,6 +35,11 @@ export default function AppNavigator() {
           options={{ presentation: 'modal' }}
         />
         <Stack.Screen name="FolderDetail" component={FolderDetailScreen} />
+        <Stack.Screen
+          name="ProfileEdit"
+          component={ProfileEditScreen}
+          options={{ presentation: 'modal' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

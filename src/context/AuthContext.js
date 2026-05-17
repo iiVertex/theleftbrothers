@@ -44,8 +44,17 @@ export const AuthProvider = ({ children }) => {
     return await supabase.auth.signOut();
   };
 
+  // Updates the user's metadata. The onAuthStateChange subscription above
+  // receives the USER_UPDATED event and refreshes `user` automatically.
+  const updateProfile = async ({ username, avatarUrl }) => {
+    const data = {};
+    if (username !== undefined) data.username = username;
+    if (avatarUrl !== undefined) data.avatar_url = avatarUrl;
+    return await supabase.auth.updateUser({ data });
+  };
+
   return (
-    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

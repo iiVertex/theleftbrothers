@@ -26,7 +26,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow ReelsVault to access your camera to record videos.",
+          "microphonePermission": "Allow ReelsVault to access your microphone to record video audio."
+        }
+      ]
     ]
   }
 }

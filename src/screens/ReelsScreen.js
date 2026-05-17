@@ -13,31 +13,55 @@ const { width, height } = Dimensions.get('window');
 const CRITERIA_OPTIONS = [
   { id: 'Shuffle', label: 'Shuffle', icon: 'shuffle-outline' },
   { id: 'Latest', label: 'Latest', icon: 'time-outline' },
-  { id: 'Shortest', label: 'Shortest', icon: 'flash-outline' },
-  { id: 'Longest', label: 'Longest', icon: 'hourglass-outline' },
-  { id: 'Most Viewed', label: 'Most Viewed', icon: 'flame-outline' },
+  { id: 'Oldest', label: 'Oldest', icon: 'arrow-up-outline' },
   { id: 'View All', label: 'View All', icon: 'albums-outline' },
 ];
 
 export default function ReelsScreen() {
-  const { settings, videos, folders } = useData();
+  const { settings, videos, folders, recordView } = useData();
   const [activeCriteria, setActiveCriteria] = useState('Shuffle');
   const [activeFolder, setActiveFolder] = useState('all');
   const [isPlaying, setIsPlaying] = useState(false);
   const [filteredVideos, setFilteredVideos] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
 
+  // FlatList forbids changing these props between renders, so they live in refs.
+  // recordView is reached through a ref so the stable handler always sees the latest.
+  const recordViewRef = useRef(recordView);
+  recordViewRef.current = recordView;
+  const countedRef = useRef(new Set()); // reel ids already counted this play session
+
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
-    if (viewableItems.length > 0) setCurrentVideoIndex(viewableItems[0].index);
+    if (viewableItems.length > 0) {
+      const visible = viewableItems[0];
+      setCurrentVideoIndex(visible.index);
+      const reelId = visible.item?.id;
+      if (reelId && !countedRef.current.has(reelId)) {
+        countedRef.current.add(reelId);
+        recordViewRef.current(reelId);
+      }
+    }
   }).current;
 
   useEffect(() => {
     if (!isPlaying) return;
     let next = [...videos];
     if (activeFolder !== 'all') next = next.filter(v => v.folder_id === activeFolder);
-    if (activeCriteria === 'Shuffle') next.sort(() => Math.random() - 0.5);
-    else if (activeCriteria === 'Latest') next.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+    if (activeCriteria === 'Shuffle') {
+      // Fisher-Yates — unbiased shuffle
+      for (let i = next.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [next[i], next[j]] = [next[j], next[i]];
+      }
+    } else if (activeCriteria === 'Latest') {
+      next.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    } else if (activeCriteria === 'Oldest') {
+      next.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+    }
+    // 'View All' → leave in default (created_at desc) order
+
     setFilteredVideos(next);
     setCurrentVideoIndex(0);
   }, [isPlaying, videos, activeFolder, activeCriteria]);
@@ -159,7 +183,7 @@ export default function ReelsScreen() {
         <TouchableOpacity
           style={styles.playButton}
           activeOpacity={0.85}
-          onPress={() => setIsPlaying(true)}
+          onPress={() => { countedRef.current = new Set(); setIsPlaying(true); }}
         >
           <Ionicons name="play" size={20} color={COLORS.bg1} />
           <Text style={styles.playButtonText}>Start Watching</Text>

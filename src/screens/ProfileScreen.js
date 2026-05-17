@@ -1,14 +1,36 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Modal, Switch, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Modal, Switch, ScrollView, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SHADOWS } from '../constants/theme';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
+import ActivityHeatMap from '../components/ActivityHeatMap';
 
-export default function ProfileScreen() {
-  const { folders, videos, userStats, settings, setSettings } = useData();
-  const { user } = useAuth();
+export default function ProfileScreen({ navigation }) {
+  const { folders, videos, userStats, viewActivity, settings, setSettings } = useData();
+  const { user, signOut } = useAuth();
+  const avatarUrl = user?.user_metadata?.avatar_url;
   const [isSettingsVisible, setSettingsVisible] = useState(false);
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            // SignIn lives in the parent stack, not the tab navigator.
+            const rootNav = navigation.getParent() || navigation;
+            rootNav.reset({ index: 0, routes: [{ name: 'SignIn' }] });
+          },
+        },
+      ],
+    );
+  };
 
   const toggleNotifications = () => setSettings({ ...settings, notificationsEnabled: !settings.notificationsEnabled });
   const toggleDarkMode = () => setSettings({ ...settings, isDarkMode: !settings.isDarkMode });
@@ -54,7 +76,11 @@ export default function ProfileScreen() {
         {/* User Identity */}
         <View style={styles.identityContainer}>
           <View style={[styles.avatarContainer, { backgroundColor: isDark ? COLORS.darkCard : COLORS.bg3, borderColor: border }]}>
-            <Ionicons name="person" size={40} color={subText} />
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={40} color={subText} />
+            )}
           </View>
           <Text style={[styles.userName, { color: text }]}>
             {user?.user_metadata?.username || user?.email || 'Guest User'}
@@ -62,7 +88,10 @@ export default function ProfileScreen() {
           <Text style={[styles.userHandle, { color: subText }]}>
             @{user?.user_metadata?.username?.toLowerCase().replace(/\s+/g, '') || 'user'}
           </Text>
-          <TouchableOpacity style={[styles.editProfileBtn, { borderColor: border }]}>
+          <TouchableOpacity
+            style={[styles.editProfileBtn, { borderColor: border }]}
+            onPress={() => (navigation.getParent() || navigation).navigate('ProfileEdit')}
+          >
             <Text style={[styles.editProfileText, { color: text }]}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
@@ -84,34 +113,37 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Streak Card */}
-        <View style={[styles.streakCard, { backgroundColor: cardBg, borderColor: border }]}>
-          <View style={styles.streakHeader}>
-            <View style={[styles.streakIconWrapper, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg3 }]}>
-              <Ionicons name="flame" size={20} color={subText} />
-            </View>
-            <View>
-              <Text style={[styles.streakTitle, { color: text }]}>Current Streak</Text>
-              <Text style={[styles.streakSubtitle, { color: subText }]}>Keep the momentum going!</Text>
-            </View>
-          </View>
+        {/* Activity Heat Map */}
+        <ActivityHeatMap
+          viewActivity={viewActivity}
+          isDark={isDark}
+          cardBg={cardBg}
+          text={text}
+          subText={subText}
+          border={border}
+        />
 
-          <View style={[styles.streakStats, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg2 }]}>
-            {[
-              { value: userStats.streakDays, label: 'Days' },
-              { value: userStats.streakWeeks, label: 'Weeks' },
-              { value: userStats.streakMonths, label: 'Month' },
-            ].map(({ value, label }, i) => (
-              <React.Fragment key={label}>
-                {i > 0 && <View style={[styles.streakDivider, { backgroundColor: border }]} />}
-                <View style={styles.streakStat}>
-                  <Text style={[styles.streakNumber, { color: text }]}>{value}</Text>
-                  <Text style={[styles.streakLabel, { color: subText }]}>{label}</Text>
-                </View>
-              </React.Fragment>
-            ))}
+        {/* About Card */}
+        <View style={[styles.aboutCard, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={styles.aboutHeader}>
+            <Ionicons name="information-circle-outline" size={20} color={text} />
+            <Text style={[styles.aboutTitle, { color: text }]}>About</Text>
+          </View>
+          <View style={styles.aboutRow}>
+            <Text style={[styles.aboutLabel, { color: subText }]}>App</Text>
+            <Text style={[styles.aboutValue, { color: text }]}>ReelsVault</Text>
+          </View>
+          <View style={styles.aboutRow}>
+            <Text style={[styles.aboutLabel, { color: subText }]}>Version</Text>
+            <Text style={[styles.aboutValue, { color: text }]}>1.0.0</Text>
           </View>
         </View>
+
+        {/* Log Out Button */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+          <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* SETTINGS MODAL */}
@@ -240,7 +272,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 14,
+    overflow: 'hidden',
   },
+  avatarImage: { width: '100%', height: '100%' },
   userName: { fontFamily: FONTS.serifBold, fontSize: 26, letterSpacing: 0, marginBottom: 4 },
   userHandle: { fontSize: 14, fontWeight: '500', marginBottom: 16 },
   editProfileBtn: {
@@ -276,34 +310,36 @@ const styles = StyleSheet.create({
   statNumber: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5, marginBottom: 3 },
   statLabel: { fontSize: 11, fontWeight: '700', letterSpacing: FONTS.tracking.tight, textTransform: 'uppercase' },
 
-  streakCard: {
+  // About Card
+  aboutCard: {
     marginHorizontal: 24,
+    marginTop: 20,
     borderWidth: 1,
     borderRadius: 20,
     padding: 20,
     ...SHADOWS.small,
   },
-  streakHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
-  streakIconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  streakTitle: { fontSize: 13, fontWeight: '700', letterSpacing: FONTS.tracking.wide, textTransform: 'uppercase', marginBottom: 2 },
-  streakSubtitle: { fontSize: 13, fontWeight: '500' },
-  streakStats: {
+  aboutHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  aboutTitle: { fontSize: 13, fontWeight: '700', letterSpacing: FONTS.tracking.wide, textTransform: 'uppercase' },
+  aboutRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
+  aboutLabel: { fontSize: 15, fontWeight: '500' },
+  aboutValue: { fontSize: 15, fontWeight: '700' },
+
+  // Log Out Button
+  logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
-    paddingVertical: 14,
+    justifyContent: 'center',
+    gap: 8,
+    marginHorizontal: 24,
+    marginTop: 16,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.error,
+    backgroundColor: 'rgba(192,57,43,0.06)',
   },
-  streakStat: { flex: 1, alignItems: 'center' },
-  streakNumber: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5, marginBottom: 3 },
-  streakLabel: { fontSize: 11, fontWeight: '700', letterSpacing: FONTS.tracking.tight, textTransform: 'uppercase' },
-  streakDivider: { width: 1, height: 36 },
+  logoutText: { fontSize: 15, fontWeight: '700', color: COLORS.error },
 
   // Settings Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },

@@ -44,6 +44,27 @@ export default function CreateVideoScreen({ navigation }) {
     }
   };
 
+  const recordVideo = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Not Supported', 'Recording is not available on web. Please use Upload instead.');
+      return;
+    }
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Camera access is needed to record a video.');
+      return;
+    }
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['videos'],
+      videoMaxDuration: 180,
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setVideoUri(result.assets[0].uri);
+      setVideoMime(result.assets[0].mimeType || null);
+    }
+  };
+
   const uploadVideo = async () => {
     if (!videoUri || !title || !folder) {
       Alert.alert('Missing Fields', 'Please provide a video, title, and select a folder.');
@@ -120,7 +141,7 @@ export default function CreateVideoScreen({ navigation }) {
           {/* Upload Zone */}
           <TouchableOpacity
             style={[styles.uploadZone, { backgroundColor: isDark ? COLORS.darkCard : COLORS.bg2, borderColor: border }]}
-            onPress={pickVideo}
+            onPress={activeTab === 'upload' ? pickVideo : recordVideo}
           >
             <View style={[styles.uploadIconWrapper, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg3 }]}>
               <Ionicons

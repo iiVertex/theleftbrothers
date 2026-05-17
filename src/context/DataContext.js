@@ -8,6 +8,7 @@ export const DataProvider = ({ children }) => {
   const { user } = useAuth();
   const [folders, setFolders] = useState([]);
   const [videos, setVideos] = useState([]);
+  const [viewActivity, setViewActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userStats, setUserStats] = useState({
     views: 126,
@@ -28,8 +29,15 @@ export const DataProvider = ({ children }) => {
     } else {
       setFolders([]);
       setVideos([]);
+      setViewActivity([]);
     }
   }, [user]);
+
+  // Local 'YYYY-MM-DD' for a Date (avoids UTC shift from toISOString).
+  const localDateKey = (d) => {
+    const date = new Date(d);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -39,6 +47,25 @@ export const DataProvider = ({ children }) => {
 
       const videosResponse = await supabase.from('reels').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
       if (videosResponse.data) setVideos(videosResponse.data);
+
+      // Reel views for the current calendar month, aggregated per local day.
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const viewsResponse = await supabase
+        .from('reel_views')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', monthStart.toISOString())
+        .lt('created_at', nextMonth.toISOString());
+      if (viewsResponse.data) {
+        const counts = {};
+        viewsResponse.data.forEach(({ created_at }) => {
+          const key = localDateKey(created_at);
+          counts[key] = (counts[key] || 0) + 1;
+        });
+        setViewActivity(Object.entries(counts).map(([date, count]) => ({ date, count })));
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -93,6 +120,27 @@ export const DataProvider = ({ children }) => {
     return { data, error };
   };
 
+  const recordView = async (reelId) => {
+    if (!user) return;
+    // Optimistically bump today's count so the heat map updates live.
+    const todayKey = localDateKey(new Date());
+    setViewActivity(prev => {
+      const existing = prev.find(d => d.date === todayKey);
+      if (existing) {
+        return prev.map(d => d.date === todayKey ? { ...d, count: d.count + 1 } : d);
+      }
+      return [...prev, { date: todayKey, count: 1 }];
+    });
+
+    const { error } = await supabase.from('reel_views').insert([{ user_id: user.id, reel_id: reelId || null }]);
+    if (error) {
+      console.error('Error recording view - Rolling back', error);
+      setViewActivity(prev => prev
+        .map(d => d.date === todayKey ? { ...d, count: d.count - 1 } : d)
+        .filter(d => d.count > 0));
+    }
+  };
+
   const deleteFolder = async (folderId) => {
     if (!user) return;
     
@@ -130,10 +178,10 @@ export const DataProvider = ({ children }) => {
 
   return (
     <DataContext.Provider value={{ 
-      folders, videos, userStats, setUserStats, settings, setSettings, loading,
-      addFolder, addVideo, 
+      folders, videos, viewActivity, userStats, setUserStats, settings, setSettings, loading,
+      addFolder, addVideo, recordView,
       deleteFolder, deleteVideo, updateFolder,
-      getFolderItemCount 
+      getFolderItemCount
     }}>
       {children}
     </DataContext.Provider>
