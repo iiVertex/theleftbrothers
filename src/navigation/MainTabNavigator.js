@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -9,77 +9,65 @@ import ReelsScreen from '../screens/ReelsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { COLORS, SHADOWS } from '../constants/theme';
 
-const Tab = createBottomTabNavigator();
+const Tab = createMaterialTopTabNavigator();
 
-const CustomTabBar = ({ state, descriptors, navigation }) => {
+// Visual layout of the pill bar. `route` is the navigator route name for a real
+// swipeable screen, or null for the center "Add" button (not a navigator route).
+const TAB_ITEMS = [
+  { key: 'HomeTab', route: 'HomeTab', label: 'Home' },
+  { key: 'FoldersTab', route: 'FoldersTab', label: 'Folders' },
+  { key: 'Add', route: null, label: 'Add' },
+  { key: 'ReelsTab', route: 'ReelsTab', label: 'Reels' },
+  { key: 'ProfileTab', route: 'ProfileTab', label: 'Profile' },
+];
+
+const getIconName = (routeName, isFocused) => {
+  if (routeName === 'HomeTab') return isFocused ? 'home' : 'home-outline';
+  if (routeName === 'FoldersTab') return isFocused ? 'folder' : 'folder-outline';
+  if (routeName === 'Add') return 'add';
+  if (routeName === 'ReelsTab') return isFocused ? 'play-circle' : 'play-circle-outline';
+  if (routeName === 'ProfileTab') return isFocused ? 'person' : 'person-outline';
+  return 'ellipse-outline';
+};
+
+const CustomTabBar = ({ state, navigation }) => {
+  const activeRouteName = state.routes[state.index]?.name;
+
   return (
     <View style={styles.tabBarContainer}>
-      {state.routes.map((route, index) => {
-        const { options } = descriptors[route.key];
-        const label =
-          options.tabBarLabel !== undefined
-            ? options.tabBarLabel
-            : options.title !== undefined
-            ? options.title
-            : route.name;
-
-        const isFocused = state.index === index;
-
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-
-          if (!isFocused && !event.defaultPrevented) {
-            if (route.name === 'Add') {
-              navigation.navigate('CreateVideo');
-              return;
-            }
-            navigation.navigate(route.name, route.params);
-          }
-        };
-
-        const onLongPress = () => {
-          navigation.emit({ type: 'tabLongPress', target: route.key });
-        };
-
-        let iconName;
-        if (route.name === 'HomeTab') iconName = isFocused ? 'home' : 'home-outline';
-        else if (route.name === 'FoldersTab') iconName = isFocused ? 'folder' : 'folder-outline';
-        else if (route.name === 'Add') iconName = 'add';
-        else if (route.name === 'ReelsTab') iconName = isFocused ? 'play-circle' : 'play-circle-outline';
-        else if (route.name === 'ProfileTab') iconName = isFocused ? 'person' : 'person-outline';
-
-        if (route.name === 'Add') {
+      {TAB_ITEMS.map((item) => {
+        // Center "Add" button — opens the CreateVideo modal, not a swipe page.
+        if (item.route === null) {
           return (
             <TouchableOpacity
-              key={route.key}
+              key={item.key}
               accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              testID={options.tabBarTestID}
-              onPress={onPress}
-              onLongPress={onLongPress}
+              accessibilityLabel="Add video"
+              onPress={() => navigation.navigate('CreateVideo')}
               style={styles.addTabItem}
             >
               <View style={styles.addIconCircle}>
-                <Ionicons name={iconName} size={24} color={COLORS.bg1} />
+                <Ionicons name="add" size={24} color={COLORS.bg1} />
               </View>
             </TouchableOpacity>
           );
         }
 
+        const isFocused = activeRouteName === item.route;
+        const iconName = getIconName(item.route, isFocused);
+
+        const onPress = () => {
+          if (!isFocused) {
+            navigation.navigate(item.route);
+          }
+        };
+
         return (
           <TouchableOpacity
-            key={route.key}
+            key={item.key}
             accessibilityRole="button"
             accessibilityState={isFocused ? { selected: true } : {}}
-            accessibilityLabel={options.tabBarAccessibilityLabel}
-            testID={options.tabBarTestID}
             onPress={onPress}
-            onLongPress={onLongPress}
             style={[styles.tabItem, isFocused && styles.tabItemFocused]}
           >
             <Ionicons
@@ -87,9 +75,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
               size={20}
               color={isFocused ? COLORS.accent : COLORS.subText}
             />
-            {isFocused && (
-              <Text style={styles.tabLabelFocused}>{label}</Text>
-            )}
+            {isFocused && <Text style={styles.tabLabelFocused}>{item.label}</Text>}
           </TouchableOpacity>
         );
       })}
@@ -101,13 +87,13 @@ export default function MainTabNavigator() {
   return (
     <Tab.Navigator
       tabBar={props => <CustomTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
+      tabBarPosition="bottom"
+      screenOptions={{ swipeEnabled: true, lazy: false }}
     >
-      <Tab.Screen name="HomeTab" component={HomeScreen} options={{ tabBarLabel: 'Home' }} />
-      <Tab.Screen name="FoldersTab" component={FoldersScreen} options={{ tabBarLabel: 'Folders' }} />
-      <Tab.Screen name="Add" component={HomeScreen} options={{ tabBarLabel: 'Add' }} />
-      <Tab.Screen name="ReelsTab" component={ReelsScreen} options={{ tabBarLabel: 'Reels' }} />
-      <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ tabBarLabel: 'Profile' }} />
+      <Tab.Screen name="HomeTab" component={HomeScreen} />
+      <Tab.Screen name="FoldersTab" component={FoldersScreen} />
+      <Tab.Screen name="ReelsTab" component={ReelsScreen} />
+      <Tab.Screen name="ProfileTab" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }

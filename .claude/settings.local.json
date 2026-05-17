@@ -5,7 +5,11 @@
       "Bash(Select-Object -First 30)",
       "Bash(npx expo *)",
       "Bash(node *)",
-      "Bash(jobs)"
+      "Bash(jobs)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Desktop\\\\reelsvault\" -Recurse -Depth 2)",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Desktop\\\\reelsvault\" -Force)",
+      "Bash(Select-Object Name, Mode)"
     ]
   }
 }
