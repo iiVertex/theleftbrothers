@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "reelsvault",
+    "name": "RotSmart",
     "slug": "reelsvault",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -30,8 +30,8 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Allow ReelsVault to access your camera to record videos.",
-          "microphonePermission": "Allow ReelsVault to access your microphone to record video audio."
+          "cameraPermission": "Allow RotSmart to access your camera to record videos.",
+          "microphonePermission": "Allow RotSmart to access your microphone to record video audio."
         }
       ]
     ]

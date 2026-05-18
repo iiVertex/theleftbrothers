@@ -44,6 +44,22 @@ export const AuthProvider = ({ children }) => {
     return await supabase.auth.signOut();
   };
 
+  // Confirms a sign-up with the 6-digit code emailed by Supabase. On success a
+  // session is created and the onAuthStateChange subscription above refreshes
+  // `session`/`user` automatically.
+  const verifyOtp = async (email, token) => {
+    return await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: token.trim(),
+      type: 'signup',
+    });
+  };
+
+  // Re-sends the sign-up confirmation code to the given email.
+  const resendSignupOtp = async (email) => {
+    return await supabase.auth.resend({ type: 'signup', email: email.trim() });
+  };
+
   // Updates the user's metadata. The onAuthStateChange subscription above
   // receives the USER_UPDATED event and refreshes `user` automatically.
   const updateProfile = async ({ username, avatarUrl }) => {
@@ -54,7 +70,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut, updateProfile }}>
+    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut, updateProfile, verifyOtp, resendSignupOtp }}>
       {children}
     </AuthContext.Provider>
   );
