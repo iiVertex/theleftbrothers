@@ -131,7 +131,7 @@ export default function ProfileScreen({ navigation }) {
           </View>
           <View style={styles.aboutRow}>
             <Text style={[styles.aboutLabel, { color: subText }]}>App</Text>
-            <Text style={[styles.aboutValue, { color: text }]}>ReelsVault</Text>
+            <Text style={[styles.aboutValue, { color: text }]}>RotSmart</Text>
           </View>
           <View style={styles.aboutRow}>
             <Text style={[styles.aboutLabel, { color: subText }]}>Version</Text>

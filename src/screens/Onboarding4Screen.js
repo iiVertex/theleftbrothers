@@ -2,7 +2,7 @@ import React from 'react';
 import OnboardingSlide from '../components/OnboardingSlide';
 import { setOnboardingComplete } from '../utils/onboarding';
 
-export default function Onboarding2Screen({ navigation }) {
+export default function Onboarding4Screen({ navigation }) {
   const skip = async () => {
     await setOnboardingComplete();
     navigation.replace('AuthChoice');
@@ -10,11 +10,11 @@ export default function Onboarding2Screen({ navigation }) {
 
   return (
     <OnboardingSlide
-      index={1}
-      title="Record with clarity"
-      subtitle="Capture lessons and ideas in crisp, distraction-free video."
-      illustration={require('../../onb/p1.png')}
-      onNext={() => navigation.navigate('Onboarding3')}
+      index={3}
+      title="Rot to remember"
+      subtitle="Revisit and rewatch so what you learn actually sticks."
+      illustration={require('../../onb/p3.png')}
+      onNext={() => navigation.navigate('Onboarding5')}
       onSkip={skip}
     />
   );
