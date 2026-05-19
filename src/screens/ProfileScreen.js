@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Modal, Switch, ScrollView, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Modal, Switch, ScrollView, Alert, Image, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SHADOWS } from '../constants/theme';
 import { useData } from '../context/DataContext';
@@ -12,22 +12,26 @@ export default function ProfileScreen({ navigation }) {
   const avatarUrl = user?.user_metadata?.avatar_url;
   const [isSettingsVisible, setSettingsVisible] = useState(false);
 
+  const doLogout = async () => {
+    await signOut();
+    // SignIn lives in the parent stack, not the tab navigator.
+    const rootNav = navigation.getParent() || navigation;
+    rootNav.reset({ index: 0, routes: [{ name: 'SignIn' }] });
+  };
+
   const handleLogout = () => {
+    // Alert.alert is a no-op on react-native-web, so the confirm dialog (and
+    // its onPress callback) never fires there — fall back to window.confirm.
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to log out?')) doLogout();
+      return;
+    }
     Alert.alert(
       'Log Out',
       'Are you sure you want to log out?',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Log Out',
-          style: 'destructive',
-          onPress: async () => {
-            await signOut();
-            // SignIn lives in the parent stack, not the tab navigator.
-            const rootNav = navigation.getParent() || navigation;
-            rootNav.reset({ index: 0, routes: [{ name: 'SignIn' }] });
-          },
-        },
+        { text: 'Log Out', style: 'destructive', onPress: doLogout },
       ],
     );
   };

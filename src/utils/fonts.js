@@ -75,8 +75,11 @@ export function applyMontserratFont() {
       const flattened = StyleSheet.flatten(element.props.style) || {};
       const fontFamily = flattened.fontFamily || familyForWeight(flattened.fontWeight);
 
+      // Merge into a flat object rather than a style array: on react-native-web
+      // the rendered element is a host <span> whose style must be a plain object
+      // — passing an array makes react-dom crash setting indexed CSS properties.
       return React.cloneElement(element, {
-        style: [element.props.style, { fontFamily, fontWeight: 'normal' }],
+        style: { ...flattened, fontFamily, fontWeight: 'normal' },
       });
     };
 

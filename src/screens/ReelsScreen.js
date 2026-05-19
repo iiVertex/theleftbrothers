@@ -1,14 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, StatusBar, ScrollView, TouchableOpacity,
-  Dimensions, Modal, FlatList,
+  Modal, FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Video, ResizeMode } from 'expo-av';
 import { COLORS, FONTS, SHADOWS } from '../constants/theme';
 import { useData } from '../context/DataContext';
-
-const { width, height } = Dimensions.get('window');
+import ReelItem from '../components/ReelItem';
 
 const CRITERIA_OPTIONS = [
   { id: 'Shuffle', label: 'Shuffle', icon: 'shuffle-outline' },
@@ -76,27 +74,7 @@ export default function ReelsScreen() {
   const border = isDark ? COLORS.darkBorder : COLORS.border;
 
   const renderVideoItem = ({ item, index }) => (
-    <View style={styles.videoContainer}>
-      <Video
-        source={{ uri: item.video_url }}
-        style={StyleSheet.absoluteFill}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay={index === currentVideoIndex}
-        isLooping
-        useNativeControls={false}
-      />
-      <View style={styles.videoOverlay}>
-        <View style={styles.videoInfo}>
-          <Text style={styles.videoTitle}>{item.title || 'Untitled'}</Text>
-          {!!item.description && <Text style={styles.videoDescription}>{item.description}</Text>}
-        </View>
-        <View style={styles.videoActions}>
-          <TouchableOpacity style={styles.actionIcon}><Ionicons name="heart" size={28} color={COLORS.white} /></TouchableOpacity>
-          <TouchableOpacity style={styles.actionIcon}><Ionicons name="share-social" size={28} color={COLORS.white} /></TouchableOpacity>
-          <TouchableOpacity style={styles.actionIcon}><Ionicons name="ellipsis-vertical" size={28} color={COLORS.white} /></TouchableOpacity>
-        </View>
-      </View>
-    </View>
+    <ReelItem item={item} isActive={index === currentVideoIndex} />
   );
 
   return (
@@ -282,31 +260,6 @@ const styles = StyleSheet.create({
   modalContainer: { flex: 1, backgroundColor: '#000' },
   videoPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111' },
   videoTempText: { color: COLORS.white, fontSize: 16, fontWeight: '600', marginTop: 16 },
-  videoContainer: { width, height, backgroundColor: '#000' },
-  videoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    padding: 20,
-    paddingBottom: 48,
-  },
-  videoInfo: { flex: 1, marginRight: 20 },
-  videoTitle: {
-    color: COLORS.white,
-    fontSize: 17,
-    fontWeight: '700',
-    marginBottom: 6,
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 8,
-  },
-  videoDescription: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
-  videoActions: { alignItems: 'center' },
-  actionIcon: { marginBottom: 20 },
   closeModalBtn: {
     position: 'absolute',
     top: 52,

@@ -96,26 +96,11 @@ export const RADIUS = {
   full: 999,
 };
 
+// Uses the CSS-style `boxShadow` shorthand (supported on RN 0.76+ / new arch
+// and react-native-web) instead of the deprecated shadow* / elevation props.
+// Format: 'offsetX offsetY blur color'.
 export const SHADOWS = {
-  small: {
-    shadowColor: '#3A312B',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  medium: {
-    shadowColor: '#3A312B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  large: {
-    shadowColor: '#3A312B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
-  },
+  small: { boxShadow: '0px 1px 4px rgba(58,49,43,0.06)' },
+  medium: { boxShadow: '0px 2px 8px rgba(58,49,43,0.08)' },
+  large: { boxShadow: '0px 4px 16px rgba(58,49,43,0.10)' },
 };
