@@ -15,7 +15,7 @@ applyMontserratFont();
 SplashScreen.preventAutoHideAsync();
 
 // Catches any render-time crash in the tree and shows it on screen, instead of
-// failing silently and leaving the app frozen on the splash screen.
+// failing silently and leaving the app frozen on the splash screen .
 class ErrorBoundary extends React.Component {
   state = { error: null };
 
