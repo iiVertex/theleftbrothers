@@ -4,6 +4,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CoachmarkProvider, CoachmarkOverlay, asyncStorage } from '@edwardloopez/react-native-coachmark';
+
 import AppNavigator from './src/navigation/AppNavigator';
 import { DataProvider } from './src/context/DataContext';
 import { AuthProvider } from './src/context/AuthContext';
@@ -76,7 +79,10 @@ export default function App() {
       <ErrorBoundary>
         <AuthProvider>
           <DataProvider>
-            <AppNavigator />
+            <CoachmarkProvider storage={asyncStorage(AsyncStorage)}>
+              <AppNavigator />
+              <CoachmarkOverlay />
+            </CoachmarkProvider>
           </DataProvider>
         </AuthProvider>
       </ErrorBoundary>

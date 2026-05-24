@@ -52,7 +52,7 @@ export default function SuccessScreen({ navigation, route }) {
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.replace('Home')}
+        onPress={() => navigation.replace('Home', { screen: 'HomeTab', params: { startTour: true } })}
         activeOpacity={0.85}
       >
         <Text style={styles.buttonText}>Enter RotSmart</Text>

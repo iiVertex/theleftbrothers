@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   StatusBar, Image, Modal, KeyboardAvoidingView, Platform,
@@ -6,8 +6,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SHADOWS } from '../constants/theme';
+import { useCoachmark } from '@edwardloopez/react-native-coachmark';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
+import { signupTour } from '../tours/signupTour';
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -60,10 +62,17 @@ function RecentVideoCard({ item, folderName, onOptionsPress, cardBg, text, subTe
   );
 }
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation, route }) {
   const { folders, videos, getFolderItemCount, deleteFolder, updateFolder, deleteVideo, settings, userStats } = useData();
   const { user } = useAuth();
+  const { start } = useCoachmark();
   const isDark = settings?.isDarkMode;
+
+  // Run the bottom-tab-bar coachmark tour once, only when arriving fresh from
+  // signup (SuccessScreen passes `startTour`). Returning sign-ins never set it.
+  useEffect(() => {
+    if (route?.params?.startTour) start(signupTour);
+  }, []);
 
   const userName = user?.user_metadata?.username
     || user?.email?.split('@')[0]

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { CoachmarkAnchor } from '@edwardloopez/react-native-coachmark';
 
 import HomeScreen from '../screens/HomeScreen';
 import FoldersScreen from '../screens/FoldersScreen';
@@ -63,20 +64,21 @@ const CustomTabBar = ({ state, navigation }) => {
         };
 
         return (
-          <TouchableOpacity
-            key={item.key}
-            accessibilityRole="button"
-            accessibilityState={isFocused ? { selected: true } : {}}
-            onPress={onPress}
-            style={[styles.tabItem, isFocused && styles.tabItemFocused]}
-          >
-            <Ionicons
-              name={iconName}
-              size={20}
-              color={isFocused ? COLORS.accent : COLORS.subText}
-            />
-            {isFocused && <Text style={styles.tabLabelFocused}>{item.label}</Text>}
-          </TouchableOpacity>
+          <CoachmarkAnchor key={item.key} id={`tab-${item.route}`} shape="pill">
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              onPress={onPress}
+              style={[styles.tabItem, isFocused && styles.tabItemFocused]}
+            >
+              <Ionicons
+                name={iconName}
+                size={20}
+                color={isFocused ? COLORS.accent : COLORS.subText}
+              />
+              {isFocused && <Text style={styles.tabLabelFocused}>{item.label}</Text>}
+            </TouchableOpacity>
+          </CoachmarkAnchor>
         );
       })}
     </View>
