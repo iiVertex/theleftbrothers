@@ -21,7 +21,9 @@
       "mcp__supabase__get_logs",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:registry.npmjs.org)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)"
     ]
   },
   "enableAllProjectMcpServers": true,
