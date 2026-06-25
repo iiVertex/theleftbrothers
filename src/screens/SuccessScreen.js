@@ -1,20 +1,10 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, StatusBar,
+  View, Text, StyleSheet, TouchableOpacity, StatusBar, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { COLORS, FONTS } from '../constants/theme';
-
-// Small decorative confetti specks scattered around the trophy.
-const CONFETTI = [
-  { top: 12, left: 32, color: '#4A90D9' },
-  { top: 4, left: 130, color: '#E8B84B' },
-  { top: 28, right: 40, color: '#D98BA5' },
-  { top: 70, left: 14, color: '#E8B84B' },
-  { top: 96, right: 18, color: '#4A90D9' },
-  { top: 140, left: 40, color: '#D98BA5' },
-];
 
 export default function SuccessScreen({ navigation, route }) {
   const { user } = useAuth();
@@ -27,21 +17,12 @@ export default function SuccessScreen({ navigation, route }) {
 
       <View style={styles.spacer} />
 
-      {/* Illustration */}
-      <View style={styles.illustration}>
-        {CONFETTI.map((c, i) => (
-          <View
-            key={i}
-            style={[
-              styles.confetti,
-              { backgroundColor: c.color, top: c.top, left: c.left, right: c.right },
-            ]}
-          />
-        ))}
-        <View style={styles.trophyCircle}>
-          <Ionicons name="trophy" size={88} color="#E0A93D" />
-        </View>
-      </View>
+      {/* Illustration — cropped from the onboarding reference (onb/p9.png). */}
+      <Image
+        source={require('../../assets/onboarding/success-trophy.png')}
+        style={styles.illustration}
+        resizeMode="contain"
+      />
 
       <Text style={styles.title}>All set, {firstName}! 🎉</Text>
       <Text style={styles.body}>
@@ -73,26 +54,10 @@ const styles = StyleSheet.create({
   spacer: { flex: 1 },
 
   illustration: {
-    width: 220,
-    height: 220,
+    width: '100%',
+    height: 300,
     alignSelf: 'center',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 36,
-  },
-  confetti: {
-    position: 'absolute',
-    width: 9,
-    height: 9,
-    borderRadius: 2,
-  },
-  trophyCircle: {
-    width: 168,
-    height: 168,
-    borderRadius: 84,
-    backgroundColor: COLORS.bg3,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 28,
   },
 
   title: {

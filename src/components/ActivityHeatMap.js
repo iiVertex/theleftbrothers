@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SHADOWS } from '../constants/theme';
+import { computeCurrentStreak, computeLongestStreak } from '../utils/streak';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
@@ -20,7 +21,7 @@ const lerpRgb = (from, to, t) => {
 
 const rgbStr = ([r, g, b]) => `rgb(${r}, ${g}, ${b})`;
 
-export default function ActivityHeatMap({ viewActivity = [], isDark, cardBg, text, subText, border }) {
+export default function ActivityHeatMap({ viewActivity = [], currentStreak: currentStreakProp, isDark, cardBg, text, subText, border }) {
   const localDateKey = (d) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -33,41 +34,15 @@ export default function ActivityHeatMap({ viewActivity = [], isDark, cardBg, tex
   viewActivity.forEach(({ date, count }) => { countByDate[date] = count; });
   const maxCount = Math.max(1, ...Object.values(countByDate));
   
+  const dates = Object.keys(countByDate);
   let totalViews = 0;
-  const dates = Object.keys(countByDate).sort();
-  let longestStreak = 0;
-  let currentStreak = 0;
-  let tempStreak = 0;
-  let lastDate = null;
+  dates.forEach((date) => { totalViews += countByDate[date]; });
 
-  for (const date of dates) {
-    totalViews += countByDate[date];
-    const d = new Date(date);
-    if (!lastDate) {
-      tempStreak = 1;
-    } else {
-      const diffTime = Math.abs(d - lastDate);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-      if (diffDays === 1) {
-        tempStreak++;
-      } else if (diffDays > 1) {
-        tempStreak = 1;
-      }
-    }
-    if (tempStreak > longestStreak) longestStreak = tempStreak;
-    lastDate = d;
-  }
-
-  if (lastDate) {
-    const today = new Date(todayKey);
-    const diffTime = Math.abs(today - lastDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays <= 1) {
-      currentStreak = tempStreak;
-    } else {
-      currentStreak = 0;
-    }
-  }
+  // Longest streak within the displayed month; current streak comes from the
+  // context (which spans month boundaries) when provided, falling back to the
+  // month-scoped data otherwise.
+  const longestStreak = computeLongestStreak(dates);
+  const currentStreak = currentStreakProp ?? computeCurrentStreak(dates);
 
   const daysPassed = now.getDate();
   const dailyAverage = daysPassed > 0 ? Math.round(totalViews / daysPassed) : 0;

@@ -5,11 +5,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import { decode } from 'base64-arraybuffer';
-import { supabase } from '../utils/supabase';
 import { COLORS, FONTS, SHADOWS } from '../constants/theme';
 import { useData } from '../context/DataContext';
+import { saveVideoLocally } from '../utils/videoStorage';
 
 export default function CreateVideoScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('upload');
@@ -72,33 +70,18 @@ export default function CreateVideoScreen({ navigation }) {
     }
     setIsUploading(true);
     try {
-      const mime = videoMime || 'video/mp4';
-      const ext = (mime.split('/')[1] || 'mp4').toLowerCase();
+      // Copy the picked/recorded file into persistent on-device storage and
+      // store its relative name; only the metadata row goes to Supabase.
+      const storedUrl = await saveVideoLocally(videoUri, videoMime || 'video/mp4');
 
-      let fileData;
-      if (Platform.OS === 'web') {
-        const response = await fetch(videoUri);
-        fileData = await response.arrayBuffer();
-      } else {
-        const base64File = await FileSystem.readAsStringAsync(videoUri, { encoding: 'base64' });
-        fileData = decode(base64File);
-      }
-
-      const filePath = `${Date.now()}.${ext}`;
-      const { error: storageError } = await supabase.storage.from('videos').upload(filePath, fileData, { contentType: mime });
-      if (storageError) throw storageError;
-
-      const { data: publicUrlData } = supabase.storage.from('videos').getPublicUrl(filePath);
-      const videoUrl = publicUrlData.publicUrl;
-
-      const { error: dbError } = await addVideo(title, description, videoUrl, folder?.id || 'root');
+      const { error: dbError } = await addVideo(title, description, storedUrl, folder?.id || 'root');
       if (dbError) throw dbError;
 
-      Alert.alert('Success', 'Video uploaded successfully!');
+      Alert.alert('Success', 'Video saved!');
       navigation.goBack();
     } catch (error) {
       console.error(error);
-      Alert.alert('Upload Failed', error.message);
+      Alert.alert('Save Failed', error.message);
     } finally {
       setIsUploading(false);
     }

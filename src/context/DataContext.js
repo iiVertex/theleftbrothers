@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '../utils/supabase';
 import { useAuth } from './AuthContext';
+import { deleteLocalVideo } from '../utils/videoStorage';
+import { computeCurrentStreak, dayKey } from '../utils/streak';
 
 const DataContext = createContext();
 
@@ -11,10 +13,10 @@ export const DataProvider = ({ children }) => {
   const [viewActivity, setViewActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userStats, setUserStats] = useState({
-    views: 126,
-    streakDays: 5,
-    streakWeeks: 3,
-    streakMonths: 1
+    views: 0,
+    streakDays: 0,
+    streakWeeks: 0,
+    streakMonths: 0
   });
   const [settings, setSettings] = useState({
     notificationsEnabled: true,
@@ -66,6 +68,23 @@ export const DataProvider = ({ children }) => {
         });
         setViewActivity(Object.entries(counts).map(([date, count]) => ({ date, count })));
       }
+
+      // Current streak needs history beyond the calendar month (so it can span
+      // month boundaries), so query a wider window of view days separately.
+      const streakWindowStart = new Date(now);
+      streakWindowStart.setDate(streakWindowStart.getDate() - 400);
+      const streakResponse = await supabase
+        .from('reel_views')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', streakWindowStart.toISOString());
+      const streakRows = streakResponse.data || [];
+      const activeDays = new Set(streakRows.map(({ created_at }) => dayKey(created_at)));
+      setUserStats(prev => ({
+        ...prev,
+        streakDays: computeCurrentStreak(activeDays),
+        views: streakRows.length,
+      }));
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -124,6 +143,8 @@ export const DataProvider = ({ children }) => {
     if (!user) return;
     // Optimistically bump today's count so the heat map updates live.
     const todayKey = localDateKey(new Date());
+    const firstViewToday = !viewActivity.some(d => d.date === todayKey);
+
     setViewActivity(prev => {
       const existing = prev.find(d => d.date === todayKey);
       if (existing) {
@@ -131,6 +152,13 @@ export const DataProvider = ({ children }) => {
       }
       return [...prev, { date: todayKey, count: 1 }];
     });
+    // First reel of the day extends the streak by one (whether it was alive
+    // yesterday or starting fresh today, the new current streak is prev + 1).
+    setUserStats(prev => ({
+      ...prev,
+      views: (prev.views || 0) + 1,
+      streakDays: firstViewToday ? (prev.streakDays || 0) + 1 : prev.streakDays,
+    }));
 
     const { error } = await supabase.from('reel_views').insert([{ user_id: user.id, reel_id: reelId || null }]);
     if (error) {
@@ -138,6 +166,11 @@ export const DataProvider = ({ children }) => {
       setViewActivity(prev => prev
         .map(d => d.date === todayKey ? { ...d, count: d.count - 1 } : d)
         .filter(d => d.count > 0));
+      setUserStats(prev => ({
+        ...prev,
+        views: Math.max(0, (prev.views || 0) - 1),
+        streakDays: firstViewToday ? Math.max(0, (prev.streakDays || 0) - 1) : prev.streakDays,
+      }));
     }
   };
 
@@ -145,8 +178,10 @@ export const DataProvider = ({ children }) => {
     if (!user) return;
     
     setFolders(prev => prev.filter(f => f.id !== folderId && f.parentId !== folderId));
+    // Remove on-device files for the reels in this folder before dropping them.
+    videos.filter(v => v.folder_id === folderId).forEach(v => deleteLocalVideo(v.video_url));
     setVideos(prev => prev.filter(v => v.folder_id !== folderId));
-    
+
     // Using 'reels' table
     await supabase.from('reels').delete().eq('folder_id', folderId);
     await supabase.from('folders').delete().eq('id', folderId);
@@ -154,7 +189,9 @@ export const DataProvider = ({ children }) => {
 
   const deleteVideo = async (videoId) => {
     if (!user) return;
+    const target = videos.find(v => v.id === videoId);
     setVideos(prev => prev.filter(v => v.id !== videoId));
+    if (target) deleteLocalVideo(target.video_url);
     await supabase.from('reels').delete().eq('id', videoId);
   };
 

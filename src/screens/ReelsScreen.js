@@ -12,7 +12,7 @@ const CRITERIA_OPTIONS = [
   { id: 'Shuffle', label: 'Shuffle', icon: 'shuffle-outline' },
   { id: 'Latest', label: 'Latest', icon: 'time-outline' },
   { id: 'Oldest', label: 'Oldest', icon: 'arrow-up-outline' },
-  { id: 'View All', label: 'View All', icon: 'albums-outline' },
+  { id: 'View All', label: 'View All', short: 'All', icon: 'albums-outline' },
 ];
 
 export default function ReelsScreen() {
@@ -88,35 +88,29 @@ export default function ReelsScreen() {
           <Text style={[styles.headerSubtitle, { color: subText }]}>What do you want to watch today?</Text>
         </View>
 
-        {/* Sort Criteria */}
+        {/* Sort Criteria — compact segmented control */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: text }]}>Sort By</Text>
-          <View style={styles.gridContainer}>
+          <View style={[styles.segmented, { backgroundColor: isDark ? COLORS.darkBorder : COLORS.bg2, borderColor: border }]}>
             {CRITERIA_OPTIONS.map((item) => {
               const isActive = activeCriteria === item.id;
               return (
                 <TouchableOpacity
                   key={item.id}
-                  style={[
-                    styles.criteriaCard,
-                    { backgroundColor: cardBg, borderColor: isActive ? COLORS.accent : border },
-                    isActive && styles.criteriaCardActive,
-                  ]}
+                  style={[styles.segment, isActive && styles.segmentActive]}
                   onPress={() => setActiveCriteria(item.id)}
-                  activeOpacity={0.75}
+                  activeOpacity={0.8}
                 >
-                  <View style={[
-                    styles.criteriaIcon,
-                    { backgroundColor: isActive ? COLORS.accent : (isDark ? COLORS.darkBorder : COLORS.bg2) },
-                  ]}>
-                    <Ionicons
-                      name={item.icon}
-                      size={20}
-                      color={isActive ? COLORS.bg1 : subText}
-                    />
-                  </View>
-                  <Text style={[styles.criteriaText, { color: isActive ? COLORS.accent : text }]}>
-                    {item.label}
+                  <Ionicons
+                    name={item.icon}
+                    size={15}
+                    color={isActive ? COLORS.bg1 : subText}
+                  />
+                  <Text
+                    style={[styles.segmentText, { color: isActive ? COLORS.bg1 : text }]}
+                    numberOfLines={1}
+                  >
+                    {item.short || item.label}
                   </Text>
                 </TouchableOpacity>
               );
@@ -212,25 +206,27 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: 24, marginTop: 24 },
   sectionTitle: { fontSize: 13, fontWeight: '700', marginBottom: 14, letterSpacing: FONTS.tracking.wide, textTransform: 'uppercase' },
 
-  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 },
-  criteriaCard: {
-    width: '47.5%',
-    borderRadius: 16,
-    padding: 16,
+  segmented: {
+    flexDirection: 'row',
+    borderRadius: 14,
+    padding: 4,
     borderWidth: 1,
-    marginBottom: 4,
+    gap: 4,
+  },
+  segment: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 11,
+    borderRadius: 10,
+  },
+  segmentActive: {
+    backgroundColor: COLORS.accent,
     ...SHADOWS.small,
   },
-  criteriaCardActive: {},
-  criteriaIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  criteriaText: { fontSize: 14, fontWeight: '700' },
+  segmentText: { fontSize: 12.5, fontWeight: '700' },
 
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {

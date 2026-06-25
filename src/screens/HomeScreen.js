@@ -9,7 +9,7 @@ import { COLORS, FONTS, SHADOWS } from '../constants/theme';
 import { useCoachmark } from '@edwardloopez/react-native-coachmark';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { signupTour } from '../tours/signupTour';
+import { buildSignupTour } from '../tours/signupTour';
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -71,7 +71,7 @@ export default function HomeScreen({ navigation, route }) {
   // Run the bottom-tab-bar coachmark tour once, only when arriving fresh from
   // signup (SuccessScreen passes `startTour`). Returning sign-ins never set it.
   useEffect(() => {
-    if (route?.params?.startTour) start(signupTour);
+    if (route?.params?.startTour) start(buildSignupTour(navigation));
   }, []);
 
   const userName = user?.user_metadata?.username

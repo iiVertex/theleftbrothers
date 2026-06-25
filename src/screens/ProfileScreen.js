@@ -120,6 +120,7 @@ export default function ProfileScreen({ navigation }) {
         {/* Activity Heat Map */}
         <ActivityHeatMap
           viewActivity={viewActivity}
+          currentStreak={userStats.streakDays}
           isDark={isDark}
           cardBg={cardBg}
           text={text}

@@ -40,17 +40,18 @@ const CustomTabBar = ({ state, navigation }) => {
         // Center "Add" button — opens the CreateVideo modal, not a swipe page.
         if (item.route === null) {
           return (
-            <TouchableOpacity
-              key={item.key}
-              accessibilityRole="button"
-              accessibilityLabel="Add video"
-              onPress={() => navigation.navigate('CreateVideo')}
-              style={styles.addTabItem}
-            >
-              <View style={styles.addIconCircle}>
-                <Ionicons name="add" size={24} color={COLORS.bg1} />
-              </View>
-            </TouchableOpacity>
+            <CoachmarkAnchor key={item.key} id="tab-Add" shape="circle">
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Add video"
+                onPress={() => navigation.navigate('CreateVideo')}
+                style={styles.addTabItem}
+              >
+                <View style={styles.addIconCircle}>
+                  <Ionicons name="add" size={24} color={COLORS.bg1} />
+                </View>
+              </TouchableOpacity>
+            </CoachmarkAnchor>
           );
         }
 
@@ -87,20 +88,27 @@ const CustomTabBar = ({ state, navigation }) => {
 
 export default function MainTabNavigator() {
   return (
-    <Tab.Navigator
-      tabBar={props => <CustomTabBar {...props} />}
-      tabBarPosition="bottom"
-      screenOptions={{ swipeEnabled: true, lazy: false }}
-    >
-      <Tab.Screen name="HomeTab" component={HomeScreen} />
-      <Tab.Screen name="FoldersTab" component={FoldersScreen} />
-      <Tab.Screen name="ReelsTab" component={ReelsScreen} />
-      <Tab.Screen name="ProfileTab" component={ProfileScreen} />
-    </Tab.Navigator>
+    <View style={styles.root}>
+      {/* Full-screen anchor for the signup tour: lets each step spotlight the
+          whole page (the tour navigates between tabs) instead of a tab icon.
+          Sits behind the navigator and ignores touches. */}
+      <CoachmarkAnchor id="page-screen" pointerEvents="none" style={StyleSheet.absoluteFill} />
+      <Tab.Navigator
+        tabBar={props => <CustomTabBar {...props} />}
+        tabBarPosition="bottom"
+        screenOptions={{ swipeEnabled: true, lazy: false }}
+      >
+        <Tab.Screen name="HomeTab" component={HomeScreen} />
+        <Tab.Screen name="FoldersTab" component={FoldersScreen} />
+        <Tab.Screen name="ReelsTab" component={ReelsScreen} />
+        <Tab.Screen name="ProfileTab" component={ProfileScreen} />
+      </Tab.Navigator>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   tabBarContainer: {
     position: 'absolute',
     bottom: 28,

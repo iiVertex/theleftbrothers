@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
 import { COLORS } from '../constants/theme';
+import { resolveVideoUri, localVideoExists } from '../utils/videoStorage';
 import ReelScrubBar from './ReelScrubBar';
 
 const { width, height } = Dimensions.get('window');
@@ -24,6 +25,19 @@ export default function ReelItem({ item, isActive }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  // Rows sync from Supabase, but locally-stored files only exist on the device
+  // that saved them. Detect a missing file and show a placeholder instead of a
+  // black, broken player.
+  const [unavailable, setUnavailable] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setUnavailable(false);
+    localVideoExists(item.video_url).then((exists) => {
+      if (!cancelled) setUnavailable(!exists);
+    });
+    return () => { cancelled = true; };
+  }, [item.video_url]);
 
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
@@ -110,19 +124,26 @@ export default function ReelItem({ item, isActive }) {
   return (
     <View style={styles.videoContainer}>
       {/* Tap-to-pause sits below the scrub bar in the tree so the bar wins touches. */}
-      <Pressable style={StyleSheet.absoluteFill} onPress={togglePause}>
-        <Video
-          ref={videoRef}
-          source={{ uri: item.video_url }}
-          style={StyleSheet.absoluteFill}
-          resizeMode={ResizeMode.COVER}
-          isLooping
-          useNativeControls={false}
-          progressUpdateIntervalMillis={120}
-          onLoad={onLoad}
-          onPlaybackStatusUpdate={onStatus}
-        />
-      </Pressable>
+      {unavailable ? (
+        <View style={[StyleSheet.absoluteFill, styles.unavailable]}>
+          <Ionicons name="cloud-offline-outline" size={48} color={COLORS.subTextLight} />
+          <Text style={styles.unavailableText}>Not available on this device</Text>
+        </View>
+      ) : (
+        <Pressable style={StyleSheet.absoluteFill} onPress={togglePause}>
+          <Video
+            ref={videoRef}
+            source={{ uri: resolveVideoUri(item.video_url) }}
+            style={StyleSheet.absoluteFill}
+            resizeMode={ResizeMode.COVER}
+            isLooping
+            useNativeControls={false}
+            progressUpdateIntervalMillis={120}
+            onLoad={onLoad}
+            onPlaybackStatusUpdate={onStatus}
+          />
+        </Pressable>
+      )}
 
       {/* Tap feedback icon */}
       <Animated.View style={[styles.flashWrap, { opacity: iconOpacity }]} pointerEvents="none">
@@ -158,6 +179,17 @@ export default function ReelItem({ item, isActive }) {
 
 const styles = StyleSheet.create({
   videoContainer: { width, height, backgroundColor: '#000' },
+  unavailable: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#000',
+  },
+  unavailableText: {
+    color: COLORS.subTextLight,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   flashWrap: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
