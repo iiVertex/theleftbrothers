@@ -23,7 +23,8 @@
       "WebFetch(domain:registry.npmjs.org)",
       "Bash(npm install *)",
       "Bash(gh auth *)",
-      "Bash(gh repo *)"
+      "Bash(gh repo *)",
+      "PowerShell(npx expo install expo-video)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -4,7 +4,7 @@ import {
   Pressable, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Video, ResizeMode } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { COLORS } from '../constants/theme';
 import { resolveVideoUri, localVideoExists } from '../utils/videoStorage';
 import ReelScrubBar from './ReelScrubBar';
@@ -15,15 +15,14 @@ const { width, height } = Dimensions.get('window');
  * A single full-screen reel: the video, the info/action overlay, an
  * Instagram-style scrub bar, and tap-to-pause.
  *
- * Playback is driven imperatively (not via `shouldPlay`) so a reel always
- * restarts from 0 whenever it becomes the active item.
+ * Uses the expo-video player (expo-av is deprecated in SDK 54). Playback is
+ * driven imperatively off `isActive` so a reel always restarts from 0 whenever
+ * it becomes the active item.
  */
 export default function ReelItem({ item, isActive }) {
-  const videoRef = useRef(null);
   const [positionMillis, setPositionMillis] = useState(0);
   const [durationMillis, setDurationMillis] = useState(0);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
   // Rows sync from Supabase, but locally-stored files only exist on the device
   // that saved them. Detect a missing file and show a placeholder instead of a
@@ -41,43 +40,50 @@ export default function ReelItem({ item, isActive }) {
 
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  const isScrubbingRef = useRef(false);
+  isScrubbingRef.current = isScrubbing;
+
+  // expo-video player (replaces the deprecated expo-av Video). One player per
+  // reel; loop forever and emit time updates ~8×/sec for the scrub bar.
+  const player = useVideoPlayer(resolveVideoUri(item.video_url), (p) => {
+    p.loop = true;
+    p.timeUpdateEventInterval = 0.12;
+  });
+
+  // Mirror playback state + progress out of the imperative player into React.
+  useEffect(() => {
+    if (!player) return;
+    const playing = player.addListener('playingChange', ({ isPlaying }) => setIsPlaying(isPlaying));
+    const time = player.addListener('timeUpdate', ({ currentTime }) => {
+      if (!isScrubbingRef.current) setPositionMillis(currentTime * 1000);
+      if (player.duration) setDurationMillis(player.duration * 1000);
+    });
+    const status = player.addListener('statusChange', ({ status, error }) => {
+      if (error) console.warn('[ReelItem] playback error', resolveVideoUri(item.video_url), error);
+      if (status === 'readyToPlay' && player.duration) setDurationMillis(player.duration * 1000);
+    });
+    return () => { playing.remove(); time.remove(); status.remove(); };
+  }, [player, item.video_url]);
+
+  // Restart-on-revisit: the active reel plays from 0; inactive reels pause and
+  // rewind so the next visit starts clean.
+  useEffect(() => {
+    if (!player) return;
+    try {
+      if (isActive && !unavailable) {
+        player.currentTime = 0;
+        player.play();
+      } else {
+        player.pause();
+        player.currentTime = 0;
+        setPositionMillis(0);
+      }
+    } catch {}
+  }, [isActive, unavailable, player]);
 
   // Flash a centered play/pause icon on tap.
   const iconOpacity = useRef(new Animated.Value(0)).current;
   const [flashIcon, setFlashIcon] = useState('play');
-
-  // Restart-on-revisit: when this reel becomes active, replay from 0;
-  // when it leaves, pause and rewind so the next visit starts clean.
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (isActive) {
-      setIsPaused(false);
-      v.replayAsync().catch(() => {});
-    } else {
-      v.pauseAsync().catch(() => {});
-      v.setPositionAsync(0).catch(() => {});
-      setPositionMillis(0);
-    }
-  }, [isActive]);
-
-  const onLoad = () => {
-    setIsLoaded(true);
-    // If this reel mounted while already active, the effect above may have run
-    // before the video was ready — kick off playback now.
-    if (isActiveRef.current) {
-      setIsPaused(false);
-      videoRef.current?.replayAsync().catch(() => {});
-    }
-  };
-
-  const onStatus = (s) => {
-    if (!s.isLoaded) return;
-    if (!isScrubbing) {
-      setPositionMillis(s.positionMillis || 0);
-    }
-    if (s.durationMillis) setDurationMillis(s.durationMillis);
-  };
 
   const flash = (name) => {
     setFlashIcon(name);
@@ -90,22 +96,19 @@ export default function ReelItem({ item, isActive }) {
   };
 
   const togglePause = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (isPaused) {
-      v.playAsync().catch(() => {});
-      setIsPaused(false);
-      flash('play');
-    } else {
-      v.pauseAsync().catch(() => {});
-      setIsPaused(true);
+    if (!player) return;
+    if (isPlaying) {
+      player.pause();
       flash('pause');
+    } else {
+      player.play();
+      flash('play');
     }
   };
 
   const onScrubStart = () => {
     setIsScrubbing(true);
-    videoRef.current?.pauseAsync().catch(() => {});
+    player?.pause();
   };
 
   const onScrub = (seekMillis) => {
@@ -113,12 +116,12 @@ export default function ReelItem({ item, isActive }) {
   };
 
   const onScrubEnd = (seekMillis) => {
-    const v = videoRef.current;
     setPositionMillis(seekMillis);
+    if (player) {
+      try { player.currentTime = seekMillis / 1000; } catch {}
+    }
     setIsScrubbing(false);
-    if (!v) return;
-    v.setPositionAsync(seekMillis).catch(() => {});
-    if (!isPaused) v.playAsync().catch(() => {});
+    if (isActiveRef.current && !unavailable) player?.play();
   };
 
   return (
@@ -130,19 +133,18 @@ export default function ReelItem({ item, isActive }) {
           <Text style={styles.unavailableText}>Not available on this device</Text>
         </View>
       ) : (
-        <Pressable style={StyleSheet.absoluteFill} onPress={togglePause}>
-          <Video
-            ref={videoRef}
-            source={{ uri: resolveVideoUri(item.video_url) }}
+        <>
+          <VideoView
+            player={player}
             style={StyleSheet.absoluteFill}
-            resizeMode={ResizeMode.COVER}
-            isLooping
-            useNativeControls={false}
-            progressUpdateIntervalMillis={120}
-            onLoad={onLoad}
-            onPlaybackStatusUpdate={onStatus}
+            contentFit="cover"
+            nativeControls={false}
+            allowsFullscreen={false}
           />
-        </Pressable>
+          {/* Tap-to-pause overlay sits above the video but below the info/scrub
+              layers (which come later in the tree) so those keep their touches. */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={togglePause} />
+        </>
       )}
 
       {/* Tap feedback icon */}

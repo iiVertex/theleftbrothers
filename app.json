@@ -33,7 +33,8 @@
           "cameraPermission": "Allow RotSmart to access your camera to record videos.",
           "microphonePermission": "Allow RotSmart to access your microphone to record video audio."
         }
-      ]
+      ],
+      "expo-video"
     ]
   }
 }
