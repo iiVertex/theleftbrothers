@@ -15,16 +15,18 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
 const REELS_SUBDIR = 'reels';
+const IMAGES_SUBDIR = 'images';
+const AUDIO_SUBDIR = 'audio';
 
 // True for anything already playable as-is (http(s), file, content, blob URIs).
 const isAbsoluteUri = (value) => typeof value === 'string' && value.includes('://');
 
-// Ensure the on-device reels directory exists. No-op on platforms without a
+// Ensure an on-device media subdirectory exists. No-op on platforms without a
 // document directory (e.g. web).
-const ensureReelsDir = async () => {
+const ensureSubdir = async (subdir) => {
   const base = FileSystem.documentDirectory;
   if (!base) return null;
-  const dir = `${base}${REELS_SUBDIR}`;
+  const dir = `${base}${subdir}`;
   const info = await FileSystem.getInfoAsync(dir);
   if (!info.exists) {
     await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
@@ -33,22 +35,28 @@ const ensureReelsDir = async () => {
 };
 
 /**
- * Copy a picked/recorded video into persistent app storage.
+ * Copy a picked/recorded media file into persistent app storage.
  *
- * @returns the value to persist in `reels.video_url`:
- *   • native: a relative name like "reels/<id>.<ext>"
+ * @returns the value to persist (e.g. in `reels.video_url`/`image_url`/`audio_url`):
+ *   • native: a relative name like "<subdir>/<id>.<ext>"
  *   • web (no filesystem): the source URI unchanged (absolute, played in-session)
  */
-export const saveVideoLocally = async (srcUri, mime) => {
+const saveMediaLocally = async (srcUri, mime, subdir, fallbackExt) => {
   // No persistent filesystem (web): fall back to the source URI as-is.
   if (!FileSystem.documentDirectory) return srcUri;
 
-  await ensureReelsDir();
-  const ext = (mime?.split('/')[1] || 'mp4').toLowerCase();
-  const name = `${REELS_SUBDIR}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  await ensureSubdir(subdir);
+  const ext = (mime?.split('/')[1] || fallbackExt).toLowerCase();
+  const name = `${subdir}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   await FileSystem.copyAsync({ from: srcUri, to: `${FileSystem.documentDirectory}${name}` });
   return name;
 };
+
+export const saveVideoLocally = (srcUri, mime) => saveMediaLocally(srcUri, mime, REELS_SUBDIR, 'mp4');
+
+export const saveImageLocally = (srcUri, mime) => saveMediaLocally(srcUri, mime, IMAGES_SUBDIR, 'jpg');
+
+export const saveAudioLocally = (srcUri, mime) => saveMediaLocally(srcUri, mime, AUDIO_SUBDIR, 'mp3');
 
 /**
  * Turn a stored `video_url` into a playable URI.

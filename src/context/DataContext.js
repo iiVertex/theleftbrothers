@@ -2,6 +2,14 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '../utils/supabase';
 import { useAuth } from './AuthContext';
 import { deleteLocalVideo } from '../utils/videoStorage';
+
+// Remove every on-device file backing a reel (video, or image + audio).
+const deleteReelFiles = (reel) => {
+  if (!reel) return;
+  deleteLocalVideo(reel.video_url);
+  deleteLocalVideo(reel.image_url);
+  deleteLocalVideo(reel.audio_url);
+};
 import { computeCurrentStreak, dayKey } from '../utils/streak';
 
 const DataContext = createContext();
@@ -115,14 +123,33 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  const addVideo = async (title, description, video_url, parentId = null) => {
+  const addVideo = async ({
+    title,
+    description,
+    parentId = null,
+    media_type = 'video',
+    video_url = null,
+    image_url = null,
+    audio_url = null,
+    display_fit = 'cover',
+    focus_x = 0.5,
+    focus_y = 0.5,
+    aspect_ratio = null,
+  }) => {
     if (!user) return { error: { message: 'You must be signed in to add a video.' } };
     const folderId = parentId === 'root' ? null : parentId;
     const newVideo = {
       title,
       description,
       folder_id: folderId,
+      media_type,
       video_url,
+      image_url,
+      audio_url,
+      display_fit,
+      focus_x,
+      focus_y,
+      aspect_ratio,
       user_id: user.id
     };
 
@@ -179,7 +206,7 @@ export const DataProvider = ({ children }) => {
     
     setFolders(prev => prev.filter(f => f.id !== folderId && f.parentId !== folderId));
     // Remove on-device files for the reels in this folder before dropping them.
-    videos.filter(v => v.folder_id === folderId).forEach(v => deleteLocalVideo(v.video_url));
+    videos.filter(v => v.folder_id === folderId).forEach(deleteReelFiles);
     setVideos(prev => prev.filter(v => v.folder_id !== folderId));
 
     // Using 'reels' table
@@ -191,7 +218,7 @@ export const DataProvider = ({ children }) => {
     if (!user) return;
     const target = videos.find(v => v.id === videoId);
     setVideos(prev => prev.filter(v => v.id !== videoId));
-    if (target) deleteLocalVideo(target.video_url);
+    if (target) deleteReelFiles(target);
     await supabase.from('reels').delete().eq('id', videoId);
   };
 
