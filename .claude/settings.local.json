@@ -24,7 +24,10 @@
       "Bash(npm install *)",
       "Bash(gh auth *)",
       "Bash(gh repo *)",
-      "PowerShell(npx expo install expo-video)"
+      "PowerShell(npx expo install expo-video)",
+      "Bash(git check-ignore *)",
+      "Bash(npx eas-cli *)",
+      "Bash(curl -sL -o app.apk \"https://expo.dev/artifacts/eas/G-tkq7YBJAyG6q8eWbL_AEFiq7I7CzAPhLCq-R0D0lE.apk\")"
     ]
   },
   "enableAllProjectMcpServers": true,

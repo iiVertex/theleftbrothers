@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView,
-  KeyboardAvoidingView, Platform, StatusBar, ActivityIndicator, Alert, Image,
+  KeyboardAvoidingView, Platform, StatusBar, ActivityIndicator, Alert, Image, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { Audio } from 'expo-av';
 import { COLORS, FONTS, SHADOWS } from '../constants/theme';
 import { useData } from '../context/DataContext';
 import { saveVideoLocally, saveImageLocally, saveAudioLocally } from '../utils/videoStorage';
@@ -15,6 +16,19 @@ const DEFAULT_FRAMING = { display_fit: 'cover', focus_x: 0.5, focus_y: 0.5 };
 
 const aspectOf = (asset) =>
   asset?.width && asset?.height ? asset.width / asset.height : null;
+
+// Number of bars in the voice-message waveform.
+const BAR_COUNT = 26;
+const WAVE_MIN_H = 4;
+const WAVE_MAX_H = 28;
+// Fallback heights for a saved recording with no captured levels.
+const WAVE_BARS = [7, 13, 20, 11, 24, 16, 9, 27, 14, 19, 8, 22, 12, 26, 15, 10, 23, 17, 9, 21, 13, 25, 11, 18, 8, 20];
+
+const formatDuration = (totalSeconds) => {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+};
 
 export default function CreateVideoScreen({ navigation }) {
   const [mediaCategory, setMediaCategory] = useState('video'); // 'video' | 'image_audio'
@@ -33,9 +47,32 @@ export default function CreateVideoScreen({ navigation }) {
   const [imageUri, setImageUri] = useState(null);
   const [imageMime, setImageMime] = useState(null);
   const [imageAspect, setImageAspect] = useState(null);
+  const [audioTab, setAudioTab] = useState('upload'); // 'upload' | 'record'
   const [audioUri, setAudioUri] = useState(null);
   const [audioMime, setAudioMime] = useState(null);
   const [audioName, setAudioName] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [levels, setLevels] = useState([]);      // live mic loudness, newest last
+  const [savedLevels, setSavedLevels] = useState([]); // frozen waveform after stop
+  const recordingRef = useRef(null);
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  // Pulse the recording dot while recording.
+  useEffect(() => {
+    if (!isRecording) { pulse.setValue(1); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 0.25, duration: 600, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1, duration: 600, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [isRecording]);
+
+  // Stop/clean up an in-flight recording if the screen unmounts.
+  useEffect(() => () => {
+    if (recordingRef.current) recordingRef.current.stopAndUnloadAsync().catch(() => {});
+  }, []);
 
   // Framing (applies to the visual media — video or image)
   const [framing, setFraming] = useState(DEFAULT_FRAMING);
@@ -121,6 +158,69 @@ export default function CreateVideoScreen({ navigation }) {
     }
   };
 
+  // Mic metering arrives in dBFS (~ -160 silent … 0 loudest). Map it to a 0..1
+  // bar height, treating roughly -50 dB as the silence floor.
+  const onRecStatus = (status) => {
+    if (!status.isRecording) return;
+    setRecordSeconds(Math.floor((status.durationMillis || 0) / 1000));
+    const db = typeof status.metering === 'number' ? status.metering : -160;
+    const level = Math.max(0, Math.min(1, (db + 50) / 50));
+    setLevels((prev) => {
+      const next = prev.length >= BAR_COUNT ? prev.slice(1) : prev.slice();
+      next.push(level);
+      return next;
+    });
+  };
+
+  const startRecording = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Not Supported', 'Recording is not available on web. Please use Upload instead.');
+      return;
+    }
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission Required', 'Microphone access is needed to record audio.');
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      setRecordSeconds(0);
+      setLevels([]);
+      const { recording } = await Audio.Recording.createAsync(
+        { ...Audio.RecordingOptionsPresets.HIGH_QUALITY, isMeteringEnabled: true },
+        onRecStatus,
+        80 // update interval (ms) — drives the live waveform
+      );
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Recording Failed', error.message);
+    }
+  };
+
+  const stopRecording = async () => {
+    const recording = recordingRef.current;
+    if (!recording) return;
+    try {
+      setIsRecording(false);
+      setSavedLevels(levels);
+      await recording.stopAndUnloadAsync();
+      // Restore playback-friendly audio mode (recording mode routes audio oddly on iOS).
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      const uri = recording.getURI();
+      recordingRef.current = null;
+      if (uri) {
+        setAudioUri(uri);
+        setAudioMime('audio/m4a'); // HIGH_QUALITY preset records .m4a on both platforms
+        setAudioName(`Recording (${formatDuration(recordSeconds)})`);
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Recording Failed', error.message);
+    }
+  };
+
   // The visual media currently selected (used by the framing step).
   const visualUri = mediaCategory === 'video' ? videoUri : imageUri;
   const visualAspect = mediaCategory === 'video' ? videoAspect : imageAspect;
@@ -172,6 +272,16 @@ export default function CreateVideoScreen({ navigation }) {
   };
 
   const fitLabel = framing.display_fit === 'contain' ? 'Whole media' : 'Filled / cropped';
+
+  // Turn a 0..1 loudness array into BAR_COUNT bar heights, right-aligned so the
+  // waveform scrolls leftward as new samples arrive.
+  const waveHeights = (arr) => {
+    const slice = arr.slice(-BAR_COUNT);
+    const pad = BAR_COUNT - slice.length;
+    return Array.from({ length: BAR_COUNT }, (_, i) =>
+      i < pad ? WAVE_MIN_H : WAVE_MIN_H + slice[i - pad] * (WAVE_MAX_H - WAVE_MIN_H)
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -268,21 +378,74 @@ export default function CreateVideoScreen({ navigation }) {
                 </Text>
               </TouchableOpacity>
 
-              {/* Audio pick row */}
-              <TouchableOpacity
-                style={[styles.audioRow, { backgroundColor: inputBg, borderColor: border }]}
-                onPress={pickAudio}
-              >
-                <Ionicons
-                  name={audioUri ? 'musical-note' : 'musical-notes-outline'}
-                  size={20}
-                  color={audioUri ? COLORS.success : subText}
-                />
-                <Text style={[styles.audioText, { color: audioUri ? text : subText }]} numberOfLines={1}>
-                  {audioUri ? audioName : 'Tap to select an audio file (MP3)'}
-                </Text>
-                <Ionicons name="chevron-forward" size={18} color={subText} />
-              </TouchableOpacity>
+              {/* Audio Upload / Record sub-toggle */}
+              <View style={[styles.subToggleContainer, { backgroundColor: toggleBg }]}>
+                {[
+                  { key: 'upload', label: 'Upload', icon: 'cloud-upload-outline' },
+                  { key: 'record', label: 'Record', icon: 'mic-outline' },
+                ].map(({ key, label, icon }) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[styles.toggleBtn, audioTab === key && styles.toggleBtnActive]}
+                    onPress={() => setAudioTab(key)}
+                  >
+                    <Ionicons name={icon} size={18} color={audioTab === key ? COLORS.bg1 : text} />
+                    <Text style={[styles.toggleText, { color: audioTab === key ? COLORS.bg1 : text }]}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {audioTab === 'upload' ? (
+                <TouchableOpacity
+                  style={[styles.audioRow, { backgroundColor: inputBg, borderColor: border }]}
+                  onPress={pickAudio}
+                >
+                  <Ionicons
+                    name={audioUri ? 'musical-note' : 'musical-notes-outline'}
+                    size={20}
+                    color={audioUri ? COLORS.success : subText}
+                  />
+                  <Text style={[styles.audioText, { color: audioUri ? text : subText }]} numberOfLines={1}>
+                    {audioUri ? audioName : 'Tap to select an audio file (MP3)'}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color={subText} />
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.voiceRow, { backgroundColor: inputBg, borderColor: isRecording ? COLORS.error : border }]}>
+                  <TouchableOpacity
+                    style={[styles.voiceBtn, { backgroundColor: isRecording ? COLORS.error : COLORS.accent }]}
+                    onPress={isRecording ? stopRecording : startRecording}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name={isRecording ? 'stop' : 'mic'} size={22} color={COLORS.white} />
+                  </TouchableOpacity>
+
+                  <View style={styles.voiceContent}>
+                    {isRecording ? (
+                      <>
+                        <Animated.View style={[styles.recDot, { opacity: pulse }]} />
+                        <View style={styles.waveform}>
+                          {waveHeights(levels).map((h, i) => (
+                            <View key={i} style={[styles.waveBar, { height: h, backgroundColor: COLORS.error }]} />
+                          ))}
+                        </View>
+                        <Text style={[styles.voiceTime, { color: text }]}>{formatDuration(recordSeconds)}</Text>
+                      </>
+                    ) : audioUri ? (
+                      <>
+                        <View style={styles.waveform}>
+                          {(savedLevels.length ? waveHeights(savedLevels) : WAVE_BARS).map((h, i) => (
+                            <View key={i} style={[styles.waveBar, { height: h, backgroundColor: subText }]} />
+                          ))}
+                        </View>
+                        <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
+                      </>
+                    ) : (
+                      <Text style={[styles.voiceHint, { color: subText }]}>Tap the mic to record a voice message</Text>
+                    )}
+                  </View>
+                </View>
+              )}
             </>
           )}
 
@@ -467,6 +630,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   audioText: { flex: 1, fontSize: 14, fontWeight: '600' },
+
+  // Voice-message style recorder
+  voiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    height: 68,
+    marginBottom: 16,
+  },
+  voiceBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  voiceContent: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 6 },
+  recDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.error },
+  waveform: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 3, height: 32, overflow: 'hidden' },
+  waveBar: { width: 3, borderRadius: 2 },
+  voiceTime: { fontSize: 13, fontWeight: '700', minWidth: 38, textAlign: 'right' },
+  voiceHint: { fontSize: 14, fontWeight: '600' },
 
   framingRow: {
     flexDirection: 'row',

@@ -13,14 +13,23 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vertexxx9.reelsvault",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "package": "com.vertexxx9.reelsvault"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,7 +43,18 @@
           "microphonePermission": "Allow RotSmart to access your microphone to record video audio."
         }
       ],
-      "expo-video"
-    ]
+      "expo-video",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow RotSmart to access your microphone to record audio."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9f5690bc-fe32-4785-afab-51e3245b2dd5"
+      }
+    }
   }
 }
