@@ -11,9 +11,9 @@ import ReelImageAudioItem from './ReelImageAudioItem';
  * Both backends share the same chrome (ReelOverlay) and framing math
  * (src/utils/framing.js).
  */
-export default function ReelItem({ item, isActive }) {
+export default function ReelItem({ item, isActive, pageWidth, pageHeight }) {
   if (item.media_type === 'image_audio') {
-    return <ReelImageAudioItem item={item} isActive={isActive} />;
+    return <ReelImageAudioItem item={item} isActive={isActive} pageWidth={pageWidth} pageHeight={pageHeight} />;
   }
-  return <ReelVideoItem item={item} isActive={isActive} />;
+  return <ReelVideoItem item={item} isActive={isActive} pageWidth={pageWidth} pageHeight={pageHeight} />;
 }

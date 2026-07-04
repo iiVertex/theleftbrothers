@@ -22,6 +22,10 @@ export default function ReelsScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [filteredVideos, setFilteredVideos] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  // Measured size of the fullscreen player viewport. Reels must be exactly
+  // this tall or pagingEnabled leaves a sliver of the next reel visible
+  // (Dimensions.get('window') doesn't match the real viewport on Android).
+  const [pageSize, setPageSize] = useState(null);
 
   // FlatList forbids changing these props between renders, so they live in refs.
   // recordView is reached through a ref so the stable handler always sees the latest.
@@ -74,7 +78,12 @@ export default function ReelsScreen() {
   const border = isDark ? COLORS.darkBorder : COLORS.border;
 
   const renderVideoItem = ({ item, index }) => (
-    <ReelItem item={item} isActive={index === currentVideoIndex} />
+    <ReelItem
+      item={item}
+      isActive={index === currentVideoIndex}
+      pageWidth={pageSize?.width}
+      pageHeight={pageSize?.height}
+    />
   );
 
   return (
@@ -163,22 +172,39 @@ export default function ReelsScreen() {
       </View>
 
       {/* Full Screen Reel Player */}
-      <Modal visible={isPlaying} animationType="slide" transparent={false}>
-        <View style={styles.modalContainer}>
+      <Modal visible={isPlaying} animationType="slide" transparent={false} statusBarTranslucent>
+        <View
+          style={styles.modalContainer}
+          onLayout={(e) => {
+            const { width, height } = e.nativeEvent.layout;
+            setPageSize({ width, height });
+          }}
+        >
           {filteredVideos.length === 0 ? (
             <View style={styles.videoPlaceholder}>
               <Ionicons name="videocam-off-outline" size={64} color="rgba(255,255,255,0.4)" />
               <Text style={styles.videoTempText}>No videos found</Text>
             </View>
-          ) : (
+          ) : pageSize && (
             <FlatList
               data={filteredVideos}
               renderItem={renderVideoItem}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => String(item.id)}
               pagingEnabled
               showsVerticalScrollIndicator={false}
               onViewableItemsChanged={onViewableItemsChanged}
               viewabilityConfig={viewabilityConfig}
+              getItemLayout={(data, index) => ({
+                length: pageSize.height,
+                offset: pageSize.height * index,
+                index,
+              })}
+              // Each mounted reel owns 1–2 native video players; letting the
+              // default virtualization mount ~10 of them exhausts Android's
+              // hardware decoders and crashes the app shortly after opening.
+              initialNumToRender={1}
+              maxToRenderPerBatch={1}
+              windowSize={3}
             />
           )}
           <TouchableOpacity style={styles.closeModalBtn} onPress={() => setIsPlaying(false)}>

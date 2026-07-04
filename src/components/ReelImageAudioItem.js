@@ -14,7 +14,7 @@ const { width, height } = Dimensions.get('window');
  * reel) with its audio track played via expo-av, looped and synced to
  * `isActive`. The scrub bar seeks the audio.
  */
-export default function ReelImageAudioItem({ item, isActive }) {
+export default function ReelImageAudioItem({ item, isActive, pageWidth = width, pageHeight = height }) {
   const [positionMillis, setPositionMillis] = useState(0);
   const [durationMillis, setDurationMillis] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -104,14 +104,14 @@ export default function ReelImageAudioItem({ item, isActive }) {
       aspectRatio: item.aspect_ratio,
       focusX: item.focus_x,
       focusY: item.focus_y,
-      frameW: width,
-      frameH: height,
+      frameW: pageWidth,
+      frameH: pageHeight,
     }),
-    [item.aspect_ratio, item.focus_x, item.focus_y]
+    [item.aspect_ratio, item.focus_x, item.focus_y, pageWidth, pageHeight]
   );
   const contain = useMemo(
-    () => computeContainFraming({ aspectRatio: item.aspect_ratio, frameW: width, frameH: height }),
-    [item.aspect_ratio]
+    () => computeContainFraming({ aspectRatio: item.aspect_ratio, frameW: pageWidth, frameH: pageHeight }),
+    [item.aspect_ratio, pageWidth, pageHeight]
   );
 
   const togglePause = async () => {
@@ -165,7 +165,7 @@ export default function ReelImageAudioItem({ item, isActive }) {
   };
 
   return (
-    <View style={styles.videoContainer}>
+    <View style={[styles.videoContainer, { width: pageWidth, height: pageHeight }]}>
       {unavailable ? (
         <View style={[StyleSheet.absoluteFill, styles.unavailable]}>
           <Ionicons name="cloud-offline-outline" size={48} color={COLORS.subTextLight} />
@@ -192,7 +192,7 @@ export default function ReelImageAudioItem({ item, isActive }) {
 }
 
 const styles = StyleSheet.create({
-  videoContainer: { width, height, backgroundColor: '#000' },
+  videoContainer: { backgroundColor: '#000' },
   clip: { overflow: 'hidden' },
   containCenter: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
   unavailable: {
