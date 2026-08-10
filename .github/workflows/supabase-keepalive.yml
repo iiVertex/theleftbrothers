@@ -24,12 +24,17 @@ jobs:
             exit 1
           fi
 
+          supabase_url="${SUPABASE_URL%/}"
+          if [[ ! "$supabase_url" =~ ^https?:// ]]; then
+            supabase_url="https://$supabase_url"
+          fi
+
           # HEAD request with a count keeps it cheap (no rows returned) while
           # still touching the database. Limit to 1 row as a fallback.
           status=$(curl -s -o /dev/null -w "%{http_code}" \
-            "$SUPABASE_URL/rest/v1/folders?select=id&limit=1" \
+            "$supabase_url/rest/v1/folders?select=id&limit=1" \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+            -H "Authorization: ******")
 
           echo "HTTP status: $status"
 
